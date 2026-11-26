@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Восточка — доставка еды в Таразе</title>
+  <meta name="description" content="Восточка — халал столовая на Гранд Базаре в Таразе. Плов, манты, лагман, шашлык, сазан, самса, торты. Заказ онлайн с доставкой и самовывозом.">
+  <meta name="theme-color" content="#a3141c">
+  <meta property="og:title" content="Восточка — доставка еды в Таразе">
+  <meta property="og:description" content="Халал столовая. Плов, манты, шашлык, сазан, выпечка и торты. Заказ в пару нажатий.">
+  <meta property="og:image" content="img/plov.jpg">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23a3141c'/%3E%3Ctext x='32' y='46' font-size='40' text-anchor='middle' fill='%23f3dc9a' font-family='Georgia,serif' font-weight='700'%3EВ%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lobster&family=PT+Sans:wght@400;700&family=PT+Sans+Narrow:wght@400;700&family=PT+Serif:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=4">
+</head>
+<body>
+  <div class="page">
+    <div id="setupNotice" class="setup-notice" hidden>
+      Не указан номер WhatsApp — откройте файл <b>config.js</b> и впишите номер.
+    </div>
+
+    <header class="hero">
+      <div class="band" aria-hidden="true"></div>
+      <div class="hero-inner">
+        <div class="hero-top">
+          <div class="halal" aria-label="Халал">
+            <span class="halal-ar">حلال</span>
+            <span class="halal-en">HALAL</span>
+          </div>
+          <div class="hero-actions">
+            <a id="callBtn" class="icon-btn" href="#" aria-label="Позвонить" hidden>
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25c1.1.37 2.3.57 3.6.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1L6.6 10.8z"/></svg>
+            </a>
+            <a id="waBtn" class="icon-btn icon-btn--wa" href="#" target="_blank" rel="noopener" aria-label="Написать в WhatsApp">
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.25-.12-1.47-.72-1.7-.8-.23-.09-.4-.13-.56.12-.17.25-.64.8-.79.97-.14.17-.29.19-.54.06a6.7 6.7 0 0 1-3.34-2.92c-.25-.43.25-.4.72-1.34.08-.17.04-.31-.02-.43l-.76-1.83c-.2-.48-.4-.41-.56-.42h-.48a.92.92 0 0 0-.66.31 2.8 2.8 0 0 0-.87 2.07 4.85 4.85 0 0 0 1.02 2.58 11.1 11.1 0 0 0 4.25 3.76c1.58.68 2.2.74 3 .62.48-.07 1.47-.6 1.68-1.18.2-.58.2-1.08.14-1.18-.06-.1-.23-.17-.48-.29z"/></svg>
+            </a>
+          </div>
+        </div>
+
+        <h1 class="logo">Восточка</h1>
+        <div class="logo-sub"><span class="diamond" aria-hidden="true"></span>Меню · доставка<span class="diamond" aria-hidden="true"></span></div>
+
+        <div class="frame hero-photo">
+          <img src="img/plov.jpg" alt="Плов ташкентский" width="900" height="546">
+        </div>
+
+        <ul class="perks">
+          <li><b>Доставка</b><span>по Таразу</span></li>
+          <li><b>Самовывоз</b><span>Гранд Базар</span></li>
+          <li><b>Kaspi</b><span>перевод</span></li>
+        </ul>
+        <p class="hero-meta" id="heroMeta"></p>
+      </div>
+    </header>
+
+    <nav class="catnav" id="catnav" aria-label="Разделы меню"></nav>
+
+    <main id="menu"></main>
+
+    <section class="sec events" id="sec-events">
+      <div class="orn" aria-hidden="true"><span></span></div>
+      <div class="events-card">
+        <h2 class="events-title">Накроем стол</h2>
+        <p class="events-lead">Той, ас, день рождения, корпоратив — приготовим, привезём и накроем. Торты целиком, бауырсаки килограммами, самса и чебуреки партиями.</p>
+        <form id="eventForm" class="form" novalidate>
+          <label class="field">
+            <span>Повод</span>
+            <select name="occasion">
+              <option>Той</option>
+              <option>Ас / поминки</option>
+              <option>День рождения</option>
+              <option>Корпоратив</option>
+              <option>Сватовство</option>
+              <option>Другое</option>
+            </select>
+          </label>
+          <div class="row2">
+            <label class="field"><span>Дата</span><input type="date" name="date" required></label>
+            <label class="field"><span>Гостей</span><input type="number" name="guests" min="1" inputmode="numeric" placeholder="20" required></label>
+          </div>
+          <fieldset class="field checks">
+            <legend>Что нужно</legend>
+            <label><input type="checkbox" name="need" value="Горячие блюда" checked> Горячие блюда</label>
+            <label><input type="checkbox" name="need" value="Салаты"> Салаты</label>
+            <label><input type="checkbox" name="need" value="Самса, бауырсаки, выпечка"> Выпечка, бауырсаки</label>
+            <label><input type="checkbox" name="need" value="Торты и десерты"> Торты и десерты</label>
+            <label><input type="checkbox" name="need" value="Накрыть и сервировать стол"> Накрыть стол под ключ</label>
+          </fieldset>
+          <div class="row2">
+            <label class="field"><span>Имя</span><input name="name" autocomplete="given-name" required></label>
+            <label class="field"><span>Телефон</span><input name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+7 7__ ___ __ __" required></label>
+          </div>
+          <label class="field"><span>Пожелания</span><textarea name="comment" rows="2" placeholder="Бюджет, блюда, адрес…"></textarea></label>
+          <p class="form-err" id="eventErr" hidden></p>
+          <button class="btn btn--gold" type="submit">Отправить заявку в WhatsApp</button>
+        </form>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="orn" aria-hidden="true"><span></span></div>
+      <div class="footer-logo">Восточка</div>
+      <p id="footerInfo"></p>
+      <p class="footer-small">Цены указаны в тенге · Халал</p>
+      <div class="band" aria-hidden="true"></div>
+    </footer>
+  </div>
+
+  <div class="cartbar" id="cartbar" hidden>
+    <button class="cartbar-btn" id="openCart" type="button">
+      <span class="cartbar-count" id="cartCount">0</span>
+      <span class="cartbar-label">Корзина</span>
+      <span class="cartbar-sum" id="cartSum">0 ₸</span>
+    </button>
+  </div>
+
+  <div class="sheet" id="sheet" hidden>
+    <div class="sheet-backdrop" data-close></div>
+    <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+      <div class="sheet-head">
+        <h3 id="sheetTitle"></h3>
+        <button class="sheet-x" type="button" data-close aria-label="Закрыть">×</button>
+      </div>
+      <div class="sheet-body" id="sheetBody"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="config.js?v=4"></script>
+  <script src="menu.js?v=4"></script>
+  <script src="app.js?v=4"></script>
+</body>
+</html>
