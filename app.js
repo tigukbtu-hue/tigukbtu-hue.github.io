@@ -7,8 +7,11 @@
   var SETS = window.SETS || [];
   var UPSELL = window.UPSELL || [];
   var EVENT_MENU = window.EVENT_MENU || [];
+  var EVENT_SETS = (window.EVENT_SETS || []).slice().sort(function (a, b) { return a.guests - b.guests; });
   var EVENT_SERVICES = window.EVENT_SERVICES || [];
-  var HITS = ['plov', 'bowl', 'samsa-meat', 'sazan-portion', 'shashlik-lamb', 'manty'];
+  var OCCASIONS = ['Той', 'Ас / поминки', 'День рождения', 'Корпоратив', 'Сватовство', 'Другое'];
+  var OCC_CHIPS = [['Той', 'Той'], ['Ас', 'Ас / поминки'], ['День рождения', 'День рождения'], ['Корпоратив', 'Корпоратив'], ['Сватовство', 'Сватовство']];
+  var LAST_TTL = 12 * 60 * 60 * 1000;
 
   // ---------- helpers ----------
   var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -28,6 +31,7 @@
     return c;
   };
   var guestsWord = function (n) { return plural(n, 'гостя', 'гостей', 'гостей'); };
+  var guestsNom = function (n) { return plural(n, 'гость', 'гостя', 'гостей'); };
   var posWord = function (n) { return plural(n, 'позиция', 'позиции', 'позиций'); };
   var fmtDate = function (d) { return d ? d.split('-').reverse().join('.') : ''; };
   var todayIso = function () {
@@ -47,6 +51,11 @@
     check: '<svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true"><path fill="currentColor" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>',
   };
 
+  function kaspiMark(big) {
+    if (C.kaspiLogo) return '<img class="kaspi-logo' + (big ? ' kaspi-logo--big' : '') + '" src="' + esc(C.kaspiLogo) + '" alt="Kaspi">';
+    return '<span class="kaspi-mark' + (big ? ' kaspi-mark--big' : '') + '">Kaspi</span>';
+  }
+
   // ---------- menu data ----------
   var ITEMS = {};
   MENU.forEach(function (sec) {
@@ -64,6 +73,9 @@
     if (it.img) return '<img src="' + esc(it.img) + '" alt="' + esc(it.name) + '" loading="lazy">';
     return '<div class="emo t-' + esc(it.section || '') + '"><span aria-hidden="true">' + (it.emoji || '🍽️') + '</span></div>';
   }
+  function mediaBox(it, extra) {
+    return '<div class="media' + (it.img && it.fit === 'contain' ? ' media--contain' : '') + '">' + media(it) + (extra || '') + '</div>';
+  }
 
   // Cart key formats:  i:<itemId>   s:<setId>   c:<first>:<second>:<drink>
   function resolve(key) {
@@ -77,7 +89,10 @@
       if (!s) return null;
       return {
         name: 'Сет «' + s.title + '»',
-        details: s.items.map(function (x) { return itemName(x[0]) + ' ×' + x[1]; }).join(', '),
+        details: s.items.map(function (x) {
+          var si = ITEMS[x[0]];
+          return itemName(x[0]) + (si && si.note ? ' (' + si.note + ')' : '') + ' ×' + x[1] + (si && si.preorder ? ' — на заказ' : '');
+        }).join(', '),
         price: setPrice(s).price,
         preorder: s.items.some(function (x) { return ITEMS[x[0]] && ITEMS[x[0]].preorder; }),
         thumb: '<img src="' + esc(s.image) + '" alt="" loading="lazy">',
@@ -102,14 +117,17 @@
         name: x.name || base.cartName || base.name,
         unit: x.unit || 'порц.',
         note: x.note != null ? x.note : (base.note || ''),
-        price: base.price, img: base.img, emoji: base.emoji, section: base.section,
-        perGuest: x.perGuest || 0,
+        price: base.price, img: base.img, fit: base.fit, emoji: base.emoji, section: base.section, preorder: !!base.preorder,
       };
       EVI[x.id] = it;
       return it;
     });
     return { id: cat.id, title: cat.title, nav: cat.nav || cat.title, items: items };
   }).filter(function (c) { return c.items.length; });
+
+  function tableSetTotal(s) {
+    return s.items.reduce(function (a, p) { return a + (EVI[p[0]] ? EVI[p[0]].price * p[1] : 0); }, 0);
+  }
 
   // ---------- state ----------
   var cart = store.get('vk_cart', []).filter(function (r) { return r && r.key && r.qty > 0 && resolve(r.key); });
@@ -120,15 +138,54 @@
   var evSel = store.get('vk_ev', {});
   Object.keys(evSel).forEach(function (k) { if (!EVI[k] || !(evSel[k] > 0)) delete evSel[k]; });
   var evForm = Object.assign({
-    guests: window.EVENT_GUESTS || 20, occasion: 'Той', date: '', time: '', address: '', comment: '', svc: {},
+    guests: '', occasion: '', date: '', time: '', address: '', comment: '', svc: {},
   }, store.get('vk_evform', {}));
+  if (OCCASIONS.indexOf(evForm.occasion) < 0) evForm.occasion = '';
+  if (evForm.date && evForm.date < todayIso()) evForm.date = '';
   EVENT_SERVICES.forEach(function (s) { if (!(s.id in evForm.svc)) evForm.svc[s.id] = !!s.on; });
+  var G = function () { return parseInt(evForm.guests, 10) || 0; };
 
   var lastOrder = null;
   var lastEvent = null;
   var sheetMode = null;
   var clearArmed = false;
+  var armedSet = null;
+  var takenSet = null;
   var currentTab = 'menu';
+  var sheetDepth = 0;
+  var ignorePop = false;
+  var orderTried = false;
+  var evTried = false;
+
+  // ---------- last order / request (survives a reload while the customer is in WhatsApp) ----------
+  function loadLast(kind) {
+    var l = store.get('vk_last_' + kind, null);
+    if (!l || !l.ts || Date.now() - l.ts > LAST_TTL) return null;
+    return l.data;
+  }
+  function saveLast(kind, data) {
+    store.set('vk_last_' + kind, { data: data, ts: Date.now() });
+    renderLastBanner();
+  }
+  function bannerRow(kind, ic, title, sub) {
+    return '<div class="last-row"><button class="last-open" type="button" data-last-open="' + kind + '">' +
+      '<span class="last-ic" aria-hidden="true">' + ic + '</span>' +
+      '<span class="last-text"><b>' + esc(title) + '</b><small>' + esc(sub) + '</small></span><span class="last-go" aria-hidden="true">›</span></button>' +
+      '<button class="last-x" type="button" data-last-close="' + kind + '" aria-label="Скрыть напоминание">×</button></div>';
+  }
+  function renderLastBanner() {
+    var el = $('#lastBanner');
+    if (!el) return;
+    var o = loadLast('order'), e = loadLast('event');
+    var rows = [];
+    if (o) rows.push(bannerRow('order', '🧾', 'Заказ №' + o.no + ' · ' + fmt(o.total), o.pay === 'kaspi' ? 'Оплата Kaspi и чек' : 'Детали заказа'));
+    if (e) rows.push(bannerRow('event', '🎉', 'Заявка на стол №' + e.no, 'Чек стола и WhatsApp'));
+    el.innerHTML = rows.join('');
+    el.hidden = !rows.length;
+  }
+  try { localStorage.removeItem('vk_last'); } catch (e) { /* old format */ }
+  lastOrder = loadLast('order');
+  lastEvent = loadLast('event');
 
   // ---------- regular cart ----------
   var qtyOf = function (key) { var r = cart.filter(function (x) { return x.key === key; })[0]; return r ? r.qty : 0; };
@@ -158,30 +215,31 @@
   function ctrlHtml(key, v) {
     var q = qtyOf(key);
     var k = esc(key);
+    var x = resolve(key);
+    var nm = esc(x ? x.name : '');
     if (v === 'mini') {
       if (!q) {
-        var x = resolve(key);
         return '<div class="mini-foot"><span class="mini-price">' + fmt(x ? x.price : 0) + '</span>' +
-          '<button class="add-round" type="button" data-add="' + k + '" aria-label="Добавить">+</button></div>';
+          '<button class="add-round" type="button" data-add="' + k + '" aria-label="Добавить: ' + nm + '">+</button></div>';
       }
       v = 'sm';
     }
     if (v === 'sm') {
-      if (!q) return '<button class="add-round" type="button" data-add="' + k + '" aria-label="Добавить">+</button>';
-      return '<div class="stepper stepper--sm"><button type="button" data-dec="' + k + '" aria-label="Убрать одну">−</button>' +
-        '<span>' + q + '</span><button type="button" data-inc="' + k + '" aria-label="Добавить ещё">+</button></div>';
+      if (!q) return '<button class="add-round" type="button" data-add="' + k + '" aria-label="Добавить: ' + nm + '">+</button>';
+      return '<div class="stepper stepper--sm"><button type="button" data-dec="' + k + '" aria-label="Убрать одну: ' + nm + '">−</button>' +
+        '<span>' + q + '</span><button type="button" data-inc="' + k + '" aria-label="Добавить ещё: ' + nm + '">+</button></div>';
     }
-    if (!q) return '<button class="btn-add" type="button" data-add="' + k + '"><b>+</b> Добавить</button>';
-    return '<div class="stepper"><button type="button" data-dec="' + k + '" aria-label="Убрать одну">−</button>' +
-      '<span>' + q + ' шт.</span><button type="button" data-inc="' + k + '" aria-label="Добавить ещё">+</button></div>';
+    if (!q) return '<button class="btn-add" type="button" data-add="' + k + '" aria-label="Добавить: ' + nm + '"><b aria-hidden="true">+</b> Добавить</button>';
+    return '<div class="stepper"><button type="button" data-dec="' + k + '" aria-label="Убрать одну: ' + nm + '">−</button>' +
+      '<span>' + q + '</span><button type="button" data-inc="' + k + '" aria-label="Добавить ещё: ' + nm + '">+</button></div>';
   }
   var ctrl = function (key, v) { return '<div class="card-ctrl" data-ctrl="' + esc(key) + '"' + (v ? ' data-v="' + v + '"' : '') + '></div>'; };
 
   // ---------- menu rendering ----------
   function card(it) {
-    var badge = it.preorder ? '<span class="badge">На заказ</span>' : (HITS.indexOf(it.id) >= 0 ? '<span class="badge badge--hit">Хит</span>' : '');
+    var badge = it.preorder ? '<span class="badge">На заказ</span>' : '';
     return '<article class="card' + (it.highlight ? ' card--hl' : '') + '">' +
-      '<div class="media">' + media(it) + badge + '</div>' +
+      mediaBox(it, badge) +
       '<div class="card-body"><div class="card-price">' + fmt(it.price) + '</div>' +
       '<div class="card-name">' + esc(it.name) + '</div>' +
       (it.note ? '<div class="card-note">' + esc(it.note) + '</div>' : '') +
@@ -201,16 +259,16 @@
     if (SETS.length) {
       out.push('<button class="promo" type="button" data-go="sec-sets"><div class="promo-text">' +
         '<span class="promo-title">Сеты для семьи</span><span class="promo-sub">Ужин на всех в один клик</span>' +
-        '<span class="promo-pill">Выгода до ' + fmt(maxSetSaving()) + '</span></div><img src="img/plov2.jpg" alt=""></button>');
+        '<span class="promo-pill">Выгода до ' + fmt(maxSetSaving()) + '</span></div><img src="img/shashlik.jpg" alt=""></button>');
     }
     if (COMBO) {
       out.push('<button class="promo promo--gold" type="button" data-go="sec-combo"><div class="promo-text">' +
         '<span class="promo-title">' + esc(COMBO.title) + '</span><span class="promo-sub">' + esc(COMBO.subtitle) + '</span>' +
-        '<span class="promo-pill">' + fmt(COMBO.price) + '</span></div><img src="img/bowl.jpg" alt=""></button>');
+        '<span class="promo-pill">' + fmt(COMBO.price) + '</span></div><img src="' + esc(COMBO.image) + '" alt=""></button>');
     }
     out.push('<button class="promo promo--dark" type="button" data-tab-go="events"><div class="promo-text">' +
       '<span class="promo-title">Накроем стол</span><span class="promo-sub">Соберите стол и сразу увидите чек</span>' +
-      '<span class="promo-pill">Собрать стол</span></div><img src="img/tort-med.jpg" alt=""></button>');
+      '<span class="promo-pill">Собрать стол</span></div><img src="img/plov.jpg" alt=""></button>');
     return out.join('');
   }
 
@@ -219,7 +277,7 @@
     var cards = SETS.map(function (s) {
       var p = setPrice(s);
       return '<article class="setcard">' +
-        '<div class="setcard-img"><img src="' + esc(s.image) + '" alt="" loading="lazy">' +
+        '<div class="setcard-img' + (s.imageFit === 'contain' ? ' setcard-img--contain' : '') + '"><img src="' + esc(s.image) + '" alt="" loading="lazy">' +
         (p.sum > p.price ? '<span class="setcard-badge">−' + fmt(p.sum - p.price) + '</span>' : '') +
         (s.serves ? '<span class="setcard-serves">' + esc(s.serves) + '</span>' : '') + '</div>' +
         '<div class="setcard-body"><h3 class="setcard-title">' + esc(s.title) + '</h3>' +
@@ -249,8 +307,7 @@
   }
 
   function sectionHtml(sec) {
-    return '<section class="sec" id="sec-' + esc(sec.id) + '">' +
-      secHead(sec.title, '<span class="sec-count">' + sec.items.length + '</span>') +
+    return '<section class="sec" id="sec-' + esc(sec.id) + '">' + secHead(sec.title) +
       '<div class="grid">' + sec.items.map(function (it) { return card(ITEMS[it.id]); }).join('') + '</div></section>';
   }
 
@@ -277,11 +334,11 @@
   function saveEv() { store.set('vk_ev', evSel); store.set('vk_evform', evForm); }
 
   function evCtrlHtml(id) {
-    var q = evQty(id), k = esc(id);
-    if (!q) return '<button class="add-round" type="button" data-evadd="' + k + '" aria-label="Добавить">+</button>';
-    return '<div class="qty"><button type="button" data-evdec="' + k + '" aria-label="Меньше">−</button>' +
-      '<input type="number" inputmode="numeric" min="0" max="9999" value="' + q + '" data-evinput="' + k + '" aria-label="Количество">' +
-      '<button type="button" data-evinc="' + k + '" aria-label="Больше">+</button></div>';
+    var q = evQty(id), k = esc(id), nm = esc(EVI[id].name);
+    if (!q) return '<button class="add-round" type="button" data-evadd="' + k + '" aria-label="Добавить: ' + nm + '">+</button>';
+    return '<div class="qty"><button type="button" data-evdec="' + k + '" aria-label="Меньше: ' + nm + '">−</button>' +
+      '<input type="number" inputmode="numeric" min="0" max="9999" value="' + q + '" data-evinput="' + k + '" aria-label="Количество: ' + nm + '">' +
+      '<button type="button" data-evinc="' + k + '" aria-label="Больше: ' + nm + '">+</button></div>';
   }
   function evSumHtml(id) {
     var it = EVI[id], q = evQty(id);
@@ -300,30 +357,56 @@
       '<span><span class="opt-ic">' + (s.emoji || '') + '</span><span class="opt-text"><b>' + esc(s.title) + '</b>' +
       '<small>' + esc(s.sub || '') + (s.price ? ' · ' + esc(s.price) : '') + '</small></span><span class="opt-check"></span></span></label>';
   }
-  var autoLabel = function () { return '✨ Подобрать меню на ' + evForm.guests + ' ' + guestsWord(evForm.guests); };
+  function tableSetCard(s) {
+    var t = tableSetTotal(s);
+    var list = s.items.filter(function (p) { return EVI[p[0]]; }).map(function (p) {
+      var it = EVI[p[0]];
+      return '<li><span>' + esc(it.name) + '</span><span>' + p[1] + ' ' + esc(it.unit) + '</span></li>';
+    }).join('');
+    return '<article class="tset" data-tset="' + s.guests + '">' +
+      '<div class="tset-head"><span class="tset-g">' + s.guests + '<small>' + guestsWord(s.guests) + '</small></span>' +
+      '<span class="tset-badge" hidden></span></div>' +
+      '<div class="tset-body"><ul class="tset-list">' + list + '</ul>' +
+      '<div class="tset-total">' + fmt(t) + '</div>' +
+      '<div class="tset-per">≈ ' + fmt(Math.round(t / s.guests)) + ' на гостя</div>' +
+      '<button class="btn btn--sm" type="button" data-tset-take="' + s.guests + '">Взять этот стол</button>' +
+      '</div></article>';
+  }
+  function occChipsHtml() {
+    return OCC_CHIPS.map(function (o) {
+      var on = evForm.occasion === o[1];
+      return '<button type="button" class="ev-chip' + (on ? ' on' : '') + '" data-occ="' + esc(o[1]) + '" aria-pressed="' + on + '">' + esc(o[0]) + '</button>';
+    }).join('');
+  }
 
   function renderEvents() {
     var hero = '<section class="ev-hero">' +
       '<h2 class="ev-title">Накроем стол</h2>' +
       '<p class="ev-lead">Соберите стол сами: выберите блюда и количество — сразу увидите полный чек.</p>' +
-      '<div class="ev-chips"><span>Той</span><span>Ас</span><span>День рождения</span><span>Корпоратив</span><span>Сватовство</span></div>' +
+      '<div class="ev-occ"><span class="ev-occ-label">Ваш повод:</span><div class="ev-chips" id="occChips">' + occChipsHtml() + '</div></div>' +
       '<div class="ev-photos"><img src="img/plov.jpg" alt="Плов"><img src="img/tort-med.jpg" alt="Медовый торт"><img src="img/samsa1.jpg" alt="Самса"></div>' +
       '<ol class="ev-steps"><li><b>1</b>Гости</li><li><b>2</b>Блюда и количество</li><li><b>3</b>Чек и заявка</li></ol>' +
       '<button class="btn btn--gold" type="button" data-go="evs-guests">Собрать стол</button>' +
       '</section>';
 
     var quick = [10, 20, 30, 50, 100].map(function (n) {
-      return '<button type="button" class="gq' + (evForm.guests === n ? ' on' : '') + '" data-gq="' + n + '">' + n + '</button>';
+      return '<button type="button" class="gq' + (G() === n ? ' on' : '') + '" data-gq="' + n + '">' + n + '</button>';
     }).join('');
     var guests = '<section class="sec" id="evs-guests">' + secHead('Сколько гостей?') +
       '<div class="pad"><div class="block">' +
       '<div class="guests"><button type="button" class="g-btn" data-gstep="-1" aria-label="Меньше гостей">−</button>' +
-      '<label class="g-val"><input id="evGuests" type="number" inputmode="numeric" min="1" max="2000" value="' + evForm.guests + '" aria-label="Количество гостей"><span>гостей</span></label>' +
+      '<label class="g-val"><input id="evGuests" type="number" inputmode="numeric" min="1" max="2000" placeholder="—" value="' + (G() || '') + '" aria-label="Количество гостей">' +
+      '<span id="evGuestsWord">' + (G() ? guestsNom(G()) : 'гостей') + '</span></label>' +
       '<button type="button" class="g-btn" data-gstep="1" aria-label="Больше гостей">+</button></div>' +
       '<div class="gq-row">' + quick + '</div>' +
-      '<button class="btn btn--gold" type="button" data-evauto id="evAutoBtn">' + autoLabel() + '</button>' +
-      '<p class="foot-hint">Положим примерный набор: плов, салаты, самсу, бауырсаки, торт и напитки. Дальше меняйте количество как хотите.</p>' +
       '</div></div></section>';
+
+    var sets = EVENT_SETS.length ? '<section class="sec" id="evs-sets">' + secHead('Готовые столы') +
+      '<p class="sec-lead" id="tsetHint"></p>' +
+      '<div class="hscroll" id="tsetRow">' + EVENT_SETS.map(tableSetCard).join('') + '</div></section>' : '';
+
+    var intro = '<div class="pad" id="evs-build"><div class="build-intro"><span aria-hidden="true">✍️</span><span><b>Соберите свой стол</b>' +
+      'Выберите блюда ниже и укажите количество — сумма посчитается сама.</span></div></div>';
 
     var cats = EVCATS.map(function (cat) {
       return '<section class="sec" id="evs-' + esc(cat.id) + '">' +
@@ -337,12 +420,14 @@
     var help = '<div class="pad" style="margin-top:16px"><p class="note"><span class="note-ic">💬</span><span>Не знаете, что выбрать? ' +
       '<a href="' + esc(waUrl('Здравствуйте! Хочу заказать стол на мероприятие, подскажите по меню.')) + '" target="_blank" rel="noopener">Напишите нам в WhatsApp</a> — подскажем.</span></p></div>';
 
-    $('#view-events').innerHTML = hero + guests + cats + svc + help;
+    $('#view-events').innerHTML = hero + guests + sets + intro + cats + svc + help;
+    markMatchingSet(false);
     updateEvCounts();
   }
 
   function evNavLinks() {
     var links = [['evs-guests', '👥 Гости']];
+    if (EVENT_SETS.length) links.push(['evs-sets', '🎁 Готовые столы']);
     EVCATS.forEach(function (c) { links.push(['evs-' + c.id, c.nav]); });
     if (EVENT_SERVICES.length) links.push(['evs-services', '🍽️ Услуги']);
     return links;
@@ -374,34 +459,106 @@
     if (q > 0) evSel[id] = q; else delete evSel[id];
     saveEv();
     updateEvRow(id, opts);
+    if (armedSet !== null || takenSet) { armedSet = null; renderSetButtons(); }
     updateBars();
   }
-  function setGuests(g) {
-    g = Math.max(1, Math.min(2000, Math.floor(g || 0)));
-    evForm.guests = g;
+
+  function setGuests(v, opts) {
+    var g = parseInt(v, 10);
+    evForm.guests = g > 0 ? Math.min(2000, g) : '';
     saveEv();
     var inp = $('#evGuests');
-    if (inp && document.activeElement !== inp) inp.value = g;
-    $$('[data-gq]').forEach(function (b) { b.classList.toggle('on', parseInt(b.getAttribute('data-gq'), 10) === g); });
-    var ab = $('#evAutoBtn');
-    if (ab) ab.textContent = autoLabel();
+    if (inp && document.activeElement !== inp) inp.value = evForm.guests;
+    var word = $('#evGuestsWord');
+    if (word) word.textContent = G() ? guestsNom(G()) : 'гостей';
+    $$('[data-gq]').forEach(function (b) { b.classList.toggle('on', parseInt(b.getAttribute('data-gq'), 10) === G()); });
+    var per = $('#evPer');
+    if (per) per.textContent = G() ? '≈ ' + fmt(Math.round(evTotal() / G())) + ' на гостя' : '';
+    markMatchingSet(opts && opts.scroll);
     updateBars();
   }
-  function autoFill() {
-    var g = evForm.guests;
-    var n = 0;
-    Object.keys(EVI).forEach(function (id) {
-      var it = EVI[id];
-      if (it.perGuest > 0) {
-        evSel[id] = Math.max(1, Math.ceil(it.perGuest * g - 1e-6));
-        n++;
+
+  function nearestSet(g) {
+    if (!g || !EVENT_SETS.length) return null;
+    for (var i = 0; i < EVENT_SETS.length; i++) if (EVENT_SETS[i].guests >= g) return EVENT_SETS[i];
+    return EVENT_SETS[EVENT_SETS.length - 1];
+  }
+  function markMatchingSet(scroll) {
+    var g = G();
+    var m = nearestSet(g);
+    var exact = !!m && m.guests === g;
+    $$('.tset').forEach(function (c) {
+      var on = !!m && parseInt(c.getAttribute('data-tset'), 10) === m.guests;
+      c.classList.toggle('match', on);
+      var b = $('.tset-badge', c);
+      b.hidden = !on;
+      b.textContent = exact ? 'Вам подходит' : 'Ближе всего';
+      if (on && scroll) c.parentNode.scrollTo({ left: c.offsetLeft - 16, behavior: scroll === 'instant' ? 'auto' : 'smooth' });
+    });
+    var hint = $('#tsetHint');
+    if (hint) {
+      if (!m) hint.textContent = 'Возьмите готовый стол и поменяйте, что нужно, — или соберите свой из блюд ниже.';
+      else if (exact) hint.textContent = 'Для ' + g + ' ' + guestsWord(g) + ' есть готовый стол. Можно взять его и поменять, что нужно, — или собрать свой ниже.';
+      else hint.textContent = 'Для ' + g + ' ' + guestsWord(g) + ' ближе всего стол на ' + m.guests + '. Нажмите «Взять на ' + g + ' ' + guestsWord(g) + '» — пересчитаем количество. Или соберите свой стол ниже.';
+    }
+    renderSetButtons();
+  }
+  function evSig() { return Object.keys(evSel).sort().map(function (k) { return k + ':' + evSel[k]; }).join(','); }
+  function setTargetFor(sg) {
+    var g = G(), m = nearestSet(g);
+    return (m && m.guests === sg && g && g !== sg) ? g : sg;
+  }
+  function isTaken(sg) { return !!takenSet && takenSet.sg === sg && takenSet.to === setTargetFor(sg) && takenSet.sig === evSig(); }
+  function renderSetButtons() {
+    $$('[data-tset-take]').forEach(function (b) {
+      var sg = parseInt(b.getAttribute('data-tset-take'), 10);
+      var armed = armedSet === sg;
+      var taken = !armed && isTaken(sg);
+      var to = setTargetFor(sg);
+      b.textContent = armed ? 'Заменить мой выбор?' : taken ? '✓ Стол в чеке' : (to !== sg ? 'Взять на ' + to + ' ' + guestsWord(to) : 'Взять этот стол');
+      b.classList.toggle('btn--gold', armed);
+      b.classList.toggle('btn--done', taken);
+    });
+  }
+  function takeSet(sg) {
+    var s = EVENT_SETS.filter(function (x) { return x.guests === sg; })[0];
+    if (!s) return;
+    if (isTaken(sg)) { toast('Этот стол уже в чеке — откройте «Чек стола» внизу'); return; }
+    if (evLines().length && armedSet !== sg) {
+      armedSet = sg;
+      renderSetButtons();
+      return;
+    }
+    armedSet = null;
+    var g = G();
+    var to = setTargetFor(sg);
+    evSel = {};
+    s.items.forEach(function (p) {
+      if (!EVI[p[0]] || !(p[1] > 0)) return;
+      var q = p[1];
+      if (to !== sg) {
+        q = p[1] * to / sg;
+        if (q < 0.5) return; // e.g. a whole cake for 1–5 guests is not added
+        q = Math.ceil(q - 1e-9);
       }
+      evSel[p[0]] = q;
     });
     saveEv();
     Object.keys(EVI).forEach(function (id) { updateEvRow(id); });
+    if (!g) setGuests(sg);
+    takenSet = { sg: sg, to: to, sig: evSig() };
+    renderSetButtons();
     updateBars();
     bump('#evbar');
-    toast('Подобрали ' + n + ' ' + posWord(n) + ' на ' + g + ' ' + guestsWord(g) + ' — проверьте количество');
+    toast(to === sg
+      ? 'Стол на ' + sg + ' ' + guestsWord(sg) + ' в чеке. Количество можно менять ниже'
+      : 'Стол пересчитан на ' + to + ' ' + guestsWord(to) + '. Количество можно менять ниже');
+  }
+  function setOccasion(v) {
+    evForm.occasion = evForm.occasion === v ? '' : v;
+    saveEv();
+    var box = $('#occChips');
+    if (box) box.innerHTML = occChipsHtml();
   }
 
   // ---------- tabs & nav ----------
@@ -425,7 +582,8 @@
     renderCatnav(name);
     updateStickyH();
     updateBars();
-    try { history.replaceState(null, '', name === 'events' ? '#events' : location.pathname + location.search); } catch (e) { /* file:// */ }
+    if (name === 'events') markMatchingSet('instant');
+    try { history.replaceState(history.state, '', name === 'events' ? '#events' : location.pathname + location.search); } catch (e) { /* file:// */ }
     if (!opts || opts.scroll !== false) {
       var top = $('#sticky').offsetTop;
       if (window.scrollY > top) window.scrollTo({ top: top, behavior: 'auto' });
@@ -442,7 +600,7 @@
 
   function updateStickyH() {
     var h = $('#sticky').offsetHeight;
-    $$('.sec').forEach(function (s) { s.style.scrollMarginTop = (h + 6) + 'px'; });
+    $$('.sec, #evs-build').forEach(function (s) { s.style.scrollMarginTop = (h + 6) + 'px'; });
   }
 
   function setupNav() {
@@ -473,7 +631,7 @@
     $('#evbar').hidden = sheetOpen || currentTab !== 'events' || lines === 0;
     $('#evCount').textContent = lines;
     $('#evSum').textContent = fmt(evTotal());
-    $('#evGuestsLbl').textContent = lines + ' ' + posWord(lines) + ' · на ' + evForm.guests + ' ' + guestsWord(evForm.guests);
+    $('#evGuestsLbl').textContent = lines + ' ' + posWord(lines) + (G() ? ' · на ' + G() + ' ' + guestsWord(G()) : '');
     updateEvCounts();
   }
 
@@ -494,13 +652,16 @@
     el.textContent = t;
     el.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { el.classList.remove('show'); }, 2000);
+    toastTimer = setTimeout(function () { el.classList.remove('show'); }, 2400);
   }
 
-  // ---------- sheet ----------
+  // ---------- sheet (with phone "Back" button support) ----------
   function openSheet(mode, o) {
-    sheetMode = mode;
     o = o || {};
+    if (!o.noPush) {
+      try { history.pushState({ vk: 1 }, ''); sheetDepth++; } catch (e) { /* ignore */ }
+    }
+    sheetMode = mode;
     $('#sheetTitle').textContent = o.title || '';
     $('#sheetBack').hidden = !o.back;
     $('#sheetExtra').innerHTML = o.extra || '';
@@ -508,6 +669,7 @@
     $('#sheet').hidden = false;
     $('#cartbar').hidden = true;
     $('#evbar').hidden = true;
+    $('#toast').classList.remove('show');
     document.body.classList.add('lock');
   }
   function setFoot(html) {
@@ -520,8 +682,26 @@
     clearArmed = false;
     $('#sheet').hidden = true;
     document.body.classList.remove('lock');
+    if (sheetDepth > 0) {
+      var d = sheetDepth;
+      sheetDepth = 0;
+      ignorePop = true;
+      try { history.go(-d); } catch (e) { ignorePop = false; }
+    }
     refresh();
   }
+  function sheetBack() {
+    if (sheetDepth > 1) { history.back(); return; }
+    if (sheetMode === 'ev-details') openEvCheck(true); else openCart(true);
+  }
+  window.addEventListener('popstate', function () {
+    if (ignorePop) { ignorePop = false; return; }
+    if (!sheetMode) return;
+    sheetDepth = Math.max(0, sheetDepth - 1);
+    if (sheetMode === 'checkout' && sheetDepth > 0) { openCart(true); return; }
+    if (sheetMode === 'ev-details' && sheetDepth > 0) { openEvCheck(true); return; }
+    closeSheet();
+  });
 
   // Combo picker
   var comboPick = {};
@@ -538,8 +718,8 @@
   }
 
   // Cart, step 1
-  function openCart() {
-    openSheet('cart', { title: 'Корзина', full: true });
+  function openCart(noPush) {
+    openSheet('cart', { title: 'Корзина', full: true, noPush: noPush });
     renderCart();
     $('#sheetBody').scrollTop = 0;
   }
@@ -565,7 +745,7 @@
     }).join('');
     var ups = UPSELL.filter(function (id) { return ITEMS[id] && !qtyOf('i:' + id); }).slice(0, 6).map(function (id) {
       var it = ITEMS[id];
-      return '<div class="mini"><div class="media">' + media(it) + '</div><div class="mini-body">' +
+      return '<div class="mini">' + mediaBox(it) + '<div class="mini-body">' +
         '<div class="mini-name">' + esc(it.cartName || it.name) + '</div>' + ctrl('i:' + id, 'mini') + '</div></div>';
     }).join('');
 
@@ -575,9 +755,8 @@
       (ups ? '<h4 class="upsell-title">Добавить к заказу?</h4><div class="hscroll upsell">' + ups + '</div>' : '') +
       '<div class="block" style="margin-top:12px">' +
       '<div class="sum-row"><span>Товары, ' + n + ' шт.</span><span>' + fmt(t) + '</span></div>' +
-      '<div class="sum-row"><span>Доставка</span><span>по тарифу Яндекса</span></div>' +
-      '<div class="sum-row"><span>Самовывоз</span><span>бесплатно</span></div>' +
-      '<div class="sum-row sum-row--total"><span>Итого</span><span>' + fmt(t) + '</span></div></div>';
+      '<div class="sum-row sum-row--total"><span>Итого</span><span>' + fmt(t) + '</span></div>' +
+      '<p class="sum-note">Доставку или самовывоз выберете на следующем шаге</p></div>';
     $$('[data-ctrl]', body).forEach(function (el) { el.innerHTML = ctrlHtml(el.getAttribute('data-ctrl'), el.getAttribute('data-v')); });
     body.scrollTop = scroll;
     setFoot('<button class="btn btn--split" type="button" data-step="checkout"><span>Оформить заказ</span><span>' + fmt(t) + '</span></button>');
@@ -594,21 +773,32 @@
     var input = tag === 'textarea'
       ? '<textarea name="' + name + '" rows="2" ' + (attrs || '') + '>' + esc(value) + '</textarea>'
       : '<input name="' + name + '" ' + (attrs || '') + ' value="' + esc(value) + '">';
-    return '<label class="field" data-field="' + name + '"><span>' + label + '</span>' + input + '</label>';
+    return '<label class="field" data-field="' + name + '">' + (label ? '<span>' + label + '</span>' : '') + input + '</label>';
   }
   function opt(name, value, checked, icon, title, sub) {
     return '<label class="opt"><input type="radio" name="' + name + '" value="' + value + '"' + (checked ? ' checked' : '') + '>' +
       '<span>' + icon + '<span class="opt-text"><b>' + title + '</b><small>' + sub + '</small></span><span class="opt-radio"></span></span></label>';
   }
+  function payHtml() {
+    var kaspi = '<label class="paybtn"><input type="radio" name="pay" value="kaspi"' + (form.pay === 'kaspi' ? ' checked' : '') + '>' +
+      '<span class="paybtn-box">' + kaspiMark() +
+      '<span class="paybtn-text"><b>Перевод на Kaspi</b><small>Переведите и отправьте чек в WhatsApp</small></span>' +
+      '<span class="paybtn-check" aria-hidden="true"></span></span></label>';
+    var cash = form.mode === 'pickup'
+      ? opt('pay', 'cash', form.pay === 'cash', '<span class="opt-ic">💵</span>', 'Наличными', 'При получении заказа')
+      : '<p class="pay-note">Наличными можно оплатить только при самовывозе</p>';
+    return '<div class="opt-list">' + kaspi + cash + '</div>';
+  }
   function thumbsRow(list) {
     var shown = list.slice(0, 12);
     return '<div class="thumbs-row">' + shown.map(function (x) {
       return '<div class="thumb">' + x.thumb + (x.qty > 1 ? '<span class="q">×' + x.qty + '</span>' : '') + '</div>';
-    }).join('') + (list.length > shown.length ? '<div class="thumb emo"><span style="font-size:14px;font-weight:900">+' + (list.length - shown.length) + '</span></div>' : '') + '</div>';
+    }).join('') + (list.length > shown.length ? '<div class="thumb thumb--more">+' + (list.length - shown.length) + '</div>' : '') + '</div>';
   }
 
   function openCheckout() {
     clearArmed = false;
+    orderTried = false;
     openSheet('checkout', { title: 'Оформление', full: true, back: true });
     renderCheckout();
     $('#sheetBody').scrollTop = 0;
@@ -642,15 +832,12 @@
       field('name', 'Имя', 'autocomplete="given-name" placeholder="Ваше имя"', form.name) +
       field('phone', 'Телефон', 'type="tel" inputmode="tel" autocomplete="tel" placeholder="+7 7__ ___ __ __"', form.phone) +
       '</div></div>' +
-      '<div class="block"><h4 class="block-title">Оплата</h4><div class="opt-list">' +
-      opt('pay', 'kaspi', form.pay === 'kaspi', '<span class="opt-ic opt-ic--kaspi">Kaspi</span>', 'Перевод Kaspi', 'После подтверждения заказа, чек — в WhatsApp') +
-      (form.mode === 'pickup' ? opt('pay', 'cash', form.pay === 'cash', '<span class="opt-ic">💵</span>', 'При получении', 'Наличными или Kaspi на месте') : '') +
-      '</div></div>' +
+      '<div class="block"><h4 class="block-title">Оплата</h4>' + payHtml() + '</div>' +
       '<div class="block"><h4 class="block-title">Комментарий</h4>' +
-      field('comment', 'К заказу', 'placeholder="Например: без лука, приборы на 3 человек"', form.comment, 'textarea') + '</div>' +
+      field('comment', '', 'placeholder="Например: без лука, приборы на 3 человек" aria-label="Комментарий к заказу"', form.comment, 'textarea') + '</div>' +
       '<div class="block"><h4 class="block-title">Ваш заказ</h4>' + thumbs +
       '<div class="sum-row"><span>Товары, ' + n + ' шт.</span><span>' + fmt(t) + '</span></div>' +
-      '<div class="sum-row"><span>Доставка</span><span>' + (form.mode === 'delivery' ? 'по тарифу Яндекса' : 'бесплатно') + '</span></div>' +
+      '<div class="sum-row"><span>Доставка</span><span>' + (form.mode === 'delivery' ? 'по тарифу Яндекса' : 'самовывоз, бесплатно') + '</span></div>' +
       '<div class="sum-row sum-row--total"><span>Итого</span><span>' + fmt(t) + (form.mode === 'delivery' ? ' + доставка' : '') + '</span></div>' +
       '</div></form>';
     body.scrollTop = scroll;
@@ -658,6 +845,7 @@
       '<button class="btn btn--wa btn--split" type="submit" form="orderForm"' + (minOk ? '' : ' disabled') + '>' +
       '<span style="display:flex;align-items:center;gap:8px">' + ICON.wa + 'Отправить заказ</span><span>' + fmt(t) + '</span></button>' +
       '<p class="foot-hint">Откроется WhatsApp с готовым сообщением — нажмите «Отправить»</p>');
+    if (orderTried) showErrors('#orderForm', '#orderErr', orderErrors(), 'Заполните: ', false);
   }
 
   // ---------- WhatsApp ----------
@@ -669,11 +857,37 @@
   }
   var orderNumber = function () { return String(Date.now()).slice(-4); };
 
-  function markInvalid(formSel, bad) {
+  // ---------- validation ----------
+  function orderErrors() {
+    var errs = [], bad = [];
+    if (form.mode === 'delivery' && String(form.address || '').trim().length < 4) { errs.push('адрес'); bad.push('address'); }
+    if (form.when === 'time' && !form.time) { errs.push('время'); bad.push('time'); }
+    if (!String(form.name || '').trim()) { errs.push('имя'); bad.push('name'); }
+    if (digits(form.phone).length < 10) { errs.push('телефон'); bad.push('phone'); }
+    return { errs: errs, bad: bad };
+  }
+  function evErrors() {
+    var errs = [], bad = [];
+    if (!evForm.date) { errs.push('дату'); bad.push('date'); }
+    else if (evForm.date < todayIso()) { errs.push('дату не раньше сегодняшней'); bad.push('date'); }
+    if (!G()) { errs.push('число гостей'); bad.push('guests'); }
+    if (needsAddress() && String(evForm.address || '').trim().length < 4) { errs.push('адрес'); bad.push('address'); }
+    if (!String(form.name || '').trim()) { errs.push('имя'); bad.push('name'); }
+    if (digits(form.phone).length < 10) { errs.push('телефон'); bad.push('phone'); }
+    return { errs: errs, bad: bad };
+  }
+  function showErrors(formSel, errSel, res, prefix, focus) {
     $$(formSel + ' .field').forEach(function (f) { f.classList.remove('invalid'); });
-    bad.forEach(function (n) { var f = $(formSel + ' [data-field="' + n + '"]'); if (f) f.classList.add('invalid'); });
-    var first = $(formSel + ' .invalid input, ' + formSel + ' .invalid textarea');
-    if (first) { first.scrollIntoView({ block: 'center', behavior: 'smooth' }); first.focus({ preventScroll: true }); }
+    res.bad.forEach(function (n) { var f = $(formSel + ' [data-field="' + n + '"]'); if (f) f.classList.add('invalid'); });
+    var errEl = $(errSel);
+    if (errEl) {
+      errEl.textContent = res.errs.length ? prefix + res.errs.join(', ') : '';
+      errEl.hidden = !res.errs.length;
+    }
+    if (focus) {
+      var first = $(formSel + ' .invalid input, ' + formSel + ' .invalid textarea');
+      if (first) { first.scrollIntoView({ block: 'center', behavior: 'smooth' }); first.focus({ preventScroll: true }); }
+    }
   }
 
   // ---------- regular order ----------
@@ -681,97 +895,102 @@
     var lines = ['🧾 *Заказ №' + no + '* — Восточка', ''];
     cart.forEach(function (r, i) {
       var x = resolve(r.key);
-      lines.push((i + 1) + '. ' + x.name + (x.details ? ' (' + x.details + ')' : '') + ' × ' + r.qty + ' = ' + fmt(x.price * r.qty));
+      lines.push((i + 1) + '. ' + x.name + (x.details ? ' (' + x.details + ')' : '') + ' × ' + r.qty + ' = ' + fmt(x.price * r.qty) +
+        (x.preorder && r.key.indexOf('i:') === 0 ? ' — на заказ' : ''));
     });
     lines.push('', '*Итого: ' + fmt(total()) + '*' + (form.mode === 'delivery' ? ' + доставка' : ''), '');
     lines.push(form.mode === 'delivery' ? '🚚 Доставка: ' + form.address + (form.entrance ? ', ' + form.entrance : '') : '🏪 Самовывоз');
     lines.push('⏰ ' + (form.when === 'time' ? 'Ко времени: ' + form.time : 'Как можно скорее'));
     lines.push('👤 ' + form.name + ', ' + form.phone);
-    lines.push('💳 Оплата: ' + (form.pay === 'kaspi' ? 'перевод Kaspi' : 'при получении'));
+    lines.push(form.pay === 'kaspi' ? '💳 Оплата: перевод Kaspi — чек пришлю в этот чат' : '💵 Оплата: наличными при получении');
     if (form.comment) lines.push('💬 ' + form.comment);
     return lines.join('\n');
   }
 
   function submitOrder() {
-    var errs = [], bad = [];
-    if (form.mode === 'delivery' && form.address.trim().length < 4) { errs.push('адрес'); bad.push('address'); }
-    if (form.when === 'time' && !form.time) { errs.push('время'); bad.push('time'); }
-    if (!form.name.trim()) { errs.push('имя'); bad.push('name'); }
-    if (digits(form.phone).length < 10) { errs.push('телефон'); bad.push('phone'); }
-    var errEl = $('#orderErr');
-    if (errs.length) {
-      errEl.textContent = 'Заполните: ' + errs.join(', ');
-      errEl.hidden = false;
-      markInvalid('#orderForm', bad);
-      return;
-    }
+    orderTried = true;
+    var res = orderErrors();
+    if (res.errs.length) { showErrors('#orderForm', '#orderErr', res, 'Заполните: ', true); return; }
     var no = orderNumber();
     var text = buildOrderText(no);
     lastOrder = { no: no, text: text, total: total(), count: count(), pay: form.pay, mode: form.mode };
+    saveLast('order', lastOrder);
     openWa(text);
     cart = [];
     store.set('vk_cart', cart);
+    // keep the contacts and address, reset the one-off choices
+    form.when = 'asap'; form.time = ''; form.comment = ''; form.pay = 'kaspi';
+    store.set('vk_form', form);
+    orderTried = false;
     showSuccess();
   }
 
-  function trackHtml(steps) {
-    return '<div class="block"><ol class="track">' + steps.map(function (s) {
-      return '<li class="' + s[0] + '"><span class="track-dot">' + s[1] + '</span><div><b>' + s[2] + '</b><small>' + esc(s[3]) + '</small></div></li>';
-    }).join('') + '</ol></div>';
+  function sblock(n, title, text, extra) {
+    return '<div class="sblock"><span class="sblock-n">' + n + '</span><div><b>' + title + '</b>' +
+      (text ? '<p>' + esc(text) + '</p>' : '') + (extra || '') + '</div></div>';
   }
 
-  function showSuccess() {
+  function kaspiBlock(n, o) {
+    return '<div class="sblock sblock--kaspi"><span class="sblock-n">' + n + '</span><div>' +
+      '<div class="kaspi-title"><span>Оплатите через</span>' + kaspiMark(true) + '</div>' +
+      '<p class="kaspi-line">' + (o.mode === 'delivery' ? 'Переведите за еду:' : 'Переведите:') + '</p>' +
+      '<div class="kaspi-amount">' + fmt(o.total) + '</div>' +
+      (o.mode === 'delivery' ? '<p class="kaspi-sub">Стоимость доставки посчитаем по тарифу Яндекса и напишем в WhatsApp.</p>' : '') +
+      (C.kaspiPhone ? '<p class="kaspi-line">На номер Kaspi:</p><div class="kaspi-num"><span>' + esc(C.kaspiPhone) + '</span>' +
+        '<button type="button" data-copy="' + esc(C.kaspiPhone) + '">Скопировать номер</button></div>' : '') +
+      (C.kaspiName ? '<p class="kaspi-sub">Получатель: ' + esc(C.kaspiName) + '</p>' : '') +
+      (C.kaspiQr ? '<img class="pay-qr" src="' + esc(C.kaspiQr) + '" alt="Kaspi QR">' : '') +
+      '<p class="kaspi-line">Затем отправьте чек в WhatsApp:</p>' +
+      '<p class="kaspi-sub">Сохраните чек в Kaspi или сделайте скриншот, потом в чате нажмите 📎 и прикрепите его.</p>' +
+      '<button class="btn btn--white" type="button" id="sendCheck">' + ICON.wa + ' Открыть WhatsApp</button>' +
+      '</div></div>';
+  }
+
+  function showSuccess(fromBanner) {
+    var o = lastOrder;
+    if (!o) return;
+    if (fromBanner) openSheet('success', { full: true });
     sheetMode = 'success';
-    $('#sheetTitle').textContent = 'Заказ №' + lastOrder.no;
+    $('#sheetTitle').textContent = 'Заказ №' + o.no;
     $('#sheetBack').hidden = true;
     $('#sheetExtra').innerHTML = '';
-    var o = lastOrder;
-    var steps = [
-      ['done', '✓', 'Заказ сформирован', o.count + ' шт. на ' + fmt(o.total)],
-      ['', '2', 'Отправьте сообщение в WhatsApp', 'Нажмите «Отправить» в открывшемся чате'],
-      ['', '3', 'Мы подтвердим заказ', o.mode === 'delivery' ? 'И сообщим стоимость доставки' : 'И напишем, когда будет готов'],
-    ];
-    if (o.pay === 'kaspi') steps.push(['', '4', 'Оплатите на Kaspi', 'Переведите сумму и пришлите чек в WhatsApp']);
-    steps.push(['', String(steps.length + 1), o.mode === 'delivery' ? 'Ждите курьера' : 'Заберите заказ', o.mode === 'delivery' ? 'Привезём по вашему адресу' : (C.address || '')]);
-    var kaspi = '';
-    if (o.pay === 'kaspi' && (C.kaspiPhone || C.kaspiQr)) {
-      kaspi = '<div class="block" style="text-align:left"><h4 class="block-title"><span class="opt-ic opt-ic--kaspi" style="width:34px;height:34px;font-size:11px">Kaspi</span> Номер для перевода</h4>' +
-        (C.kaspiPhone ? '<div class="pay-num"><span>' + esc(C.kaspiPhone) + '</span>' +
-          '<button class="btn btn--sm btn--ghost" type="button" data-copy="' + esc(C.kaspiPhone) + '">Копировать</button></div>' : '') +
-        (C.kaspiName ? '<div style="color:var(--muted);margin-top:4px">Получатель: ' + esc(C.kaspiName) + '</div>' : '') +
-        (C.kaspiQr ? '<img class="pay-qr" src="' + esc(C.kaspiQr) + '" alt="Kaspi QR">' : '') +
-        '<p class="note" style="margin-top:10px"><span class="note-ic">💡</span><span>Сумма: <b>' + fmt(o.total) + '</b>' +
-        (o.mode === 'delivery' ? ' + доставка — точную сумму напишем в WhatsApp' : '') + '</span></p></div>';
-    }
-    $('#sheetBody').innerHTML = '<div class="success">' +
-      '<div class="success-icon">' + ICON.check + '</div>' +
-      '<h4>Почти готово!</h4>' +
-      '<p>Мы открыли WhatsApp с вашим заказом. Если чат не открылся — нажмите кнопку ниже.</p>' +
-      trackHtml(steps) + kaspi + '</div>';
+    var n = 1;
+    var html = fromBanner
+      ? '<div class="success"><h4>Ваш заказ №' + o.no + '</h4><p>' + fmt(o.total) + ' · ' + (o.mode === 'delivery' ? 'доставка' : 'самовывоз') + '</p></div>' +
+        sblock(n++, 'Если ещё не отправили заказ', 'Откройте WhatsApp — сообщение с заказом подставится само, останется нажать «Отправить».',
+          '<button class="linkbtn" type="button" id="resendWa">Открыть WhatsApp с заказом</button>')
+      : '<div class="success"><div class="success-icon">' + ICON.check + '</div><h4>Почти готово!</h4></div>' +
+        sblock(n++, 'Отправьте заказ в WhatsApp', 'Чат с вашим заказом уже открыт — нажмите «Отправить».',
+          '<button class="linkbtn" type="button" id="resendWa">Чат не открылся? Открыть ещё раз</button>');
+    if (o.pay === 'kaspi' && (C.kaspiPhone || C.kaspiQr)) html += kaspiBlock(n++, o);
+    html += o.mode === 'delivery'
+      ? sblock(n++, 'Ждите курьера', 'Подтвердим заказ и время доставки в WhatsApp.')
+      : sblock(n++, 'Заберите заказ', (C.address ? C.address + '. ' : '') + (o.pay === 'cash' ? 'Оплата при получении: ' + fmt(o.total) + '. ' : '') + 'Напишем в WhatsApp, когда будет готов.');
+    $('#sheetBody').innerHTML = html;
     $('#sheetBody').scrollTop = 0;
-    setFoot('<div class="stack"><button class="btn btn--wa" type="button" id="resendWa">' + ICON.wa + ' Открыть WhatsApp ещё раз</button>' +
-      '<button class="btn btn--ghost" type="button" data-close>Вернуться в меню</button></div>');
+    setFoot('<button class="btn btn--ghost" type="button" data-close>Вернуться в меню</button>');
   }
 
   // ---------- event order: receipt → details → WhatsApp ----------
   function receiptHtml() {
-    var g = evForm.guests, t = evTotal(), lines = evLines();
+    var g = G(), t = evTotal(), lines = evLines();
     var body = EVCATS.map(function (cat) {
       var rows = cat.items.filter(function (it) { return evQty(it.id) > 0; });
       if (!rows.length) return '';
       return '<div class="rc-cat">' + esc(cat.title) + '</div>' + rows.map(function (it) {
         var q = evQty(it.id);
-        return '<div class="rc-line"><div class="rc-name">' + esc(it.name) + '<small>' + q + ' ' + esc(it.unit) + ' × ' + fmt(it.price) + '</small></div>' +
+        return '<div class="rc-line"><div class="rc-name">' + esc(it.name) + '<small>' + q + ' ' + esc(it.unit) + ' × ' + fmt(it.price) + (it.preorder ? ' · на заказ' : '') + '</small></div>' +
           '<div class="rc-sum">' + fmt(q * it.price) + '</div></div>';
       }).join('');
     }).join('');
     var svc = EVENT_SERVICES.filter(function (s) { return evForm.svc[s.id]; }).map(function (s) {
       return '<div class="rc-line"><div class="rc-name">' + esc(s.title) + '</div><div class="rc-sum rc-sum--muted">' + esc(s.price || '') + '</div></div>';
     }).join('');
+    var when = [evForm.occasion, evForm.date ? fmtDate(evForm.date) + (evForm.time ? ', ' + evForm.time : '') : ''].filter(Boolean).join(' · ');
     return '<div class="receipt-wrap"><div class="receipt">' +
       '<div class="rc-top"><div class="rc-logo">Восточка</div>' +
-      '<div class="rc-sub">Чек стола · на ' + g + ' ' + guestsWord(g) + '</div>' +
-      (evForm.date ? '<div class="rc-sub">' + esc(evForm.occasion) + ' · ' + fmtDate(evForm.date) + (evForm.time ? ', ' + esc(evForm.time) : '') + '</div>' : '') +
+      '<div class="rc-sub">Чек стола' + (g ? ' · на ' + g + ' ' + guestsWord(g) : '') + '</div>' +
+      (when ? '<div class="rc-sub">' + esc(when) + '</div>' : '') +
       '</div>' + body +
       (svc ? '<div class="rc-sep"></div><div class="rc-cat">Услуги</div>' + svc : '') +
       '<div class="rc-sep"></div>' +
@@ -781,8 +1000,8 @@
       '</div></div>';
   }
 
-  function openEvCheck() {
-    openSheet('ev-check', { title: 'Чек стола', full: true });
+  function openEvCheck(noPush) {
+    openSheet('ev-check', { title: 'Чек стола', full: true, noPush: noPush });
     renderEvCheck();
     $('#sheetBody').scrollTop = 0;
   }
@@ -799,6 +1018,7 @@
   }
 
   function openEvDetails() {
+    evTried = false;
     openSheet('ev-details', { title: 'Детали мероприятия', full: true, back: true });
     renderEvDetails();
     $('#sheetBody').scrollTop = 0;
@@ -807,17 +1027,18 @@
   function renderEvDetails() {
     var body = $('#sheetBody');
     var scroll = body.scrollTop;
-    var t = evTotal(), lines = evLines(), g = evForm.guests;
-    var occ = ['Той', 'Ас / поминки', 'День рождения', 'Корпоратив', 'Сватовство', 'Другое'];
+    var t = evTotal(), lines = evLines(), g = G();
     var thumbs = thumbsRow(lines.map(function (it) { return { thumb: media(it), qty: evQty(it.id) }; }));
     body.innerHTML = '<form id="evOrderForm" class="form" novalidate>' +
       '<div class="block"><h4 class="block-title">Мероприятие</h4><div class="form">' +
-      '<label class="field" data-field="occasion"><span>Повод</span><select name="occasion">' + occ.map(function (o) {
+      '<label class="field" data-field="occasion"><span>Повод</span><select name="occasion">' +
+      '<option value=""' + (evForm.occasion ? '' : ' selected') + '>Не выбран</option>' +
+      OCCASIONS.map(function (o) {
         return '<option' + (evForm.occasion === o ? ' selected' : '') + '>' + o + '</option>';
       }).join('') + '</select></label>' +
       '<div class="row2">' + field('date', 'Дата', 'type="date" min="' + todayIso() + '"', evForm.date) +
       field('time', 'Время', 'type="time"', evForm.time) + '</div>' +
-      field('guests', 'Гостей', 'type="number" inputmode="numeric" min="1" max="2000"', g) +
+      field('guests', 'Гостей', 'type="number" inputmode="numeric" min="1" max="2000" placeholder="Сколько гостей?"', g || '') +
       '</div></div>' +
       '<div class="block"><h4 class="block-title">Услуги и адрес</h4><div class="opt-list">' + EVENT_SERVICES.map(svcOpt).join('') + '</div>' +
       '<div style="margin-top:12px">' + (needsAddress()
@@ -829,26 +1050,27 @@
       field('phone', 'Телефон', 'type="tel" inputmode="tel" autocomplete="tel" placeholder="+7 7__ ___ __ __"', form.phone) +
       '</div></div>' +
       '<div class="block"><h4 class="block-title">Пожелания</h4>' +
-      field('comment', 'Комментарий', 'placeholder="Бюджет, особые пожелания, во сколько накрыть…"', evForm.comment, 'textarea') + '</div>' +
+      field('comment', '', 'placeholder="Бюджет, особые пожелания, во сколько накрыть…" aria-label="Пожелания"', evForm.comment, 'textarea') + '</div>' +
       '<div class="block"><h4 class="block-title">Ваш стол</h4>' + thumbs +
       '<div class="sum-row"><span>Блюда, ' + lines.length + ' ' + posWord(lines.length) + '</span><span>' + fmt(t) + '</span></div>' +
       EVENT_SERVICES.filter(function (s) { return evForm.svc[s.id]; }).map(function (s) {
         return '<div class="sum-row"><span>' + esc(s.title) + '</span><span>' + esc(s.price || '') + '</span></div>';
       }).join('') +
       '<div class="sum-row sum-row--total"><span>Итого</span><span>' + fmt(t) + '</span></div>' +
-      '<div class="rc-per">≈ ' + fmt(Math.round(t / Math.max(1, g))) + ' на гостя</div>' +
+      '<div class="rc-per" id="evPer">' + (g ? '≈ ' + fmt(Math.round(t / g)) + ' на гостя' : '') + '</div>' +
       '</div></form>';
     body.scrollTop = scroll;
     setFoot('<p class="form-err" id="evErr" hidden style="margin-bottom:8px"></p>' +
       '<button class="btn btn--wa btn--split" type="submit" form="evOrderForm">' +
       '<span style="display:flex;align-items:center;gap:8px">' + ICON.wa + 'Отправить заявку</span><span>' + fmt(t) + '</span></button>' +
       '<p class="foot-hint">Откроется WhatsApp с заявкой и полным чеком — нажмите «Отправить»</p>');
+    if (evTried) showErrors('#evOrderForm', '#evErr', evErrors(), 'Укажите: ', false);
   }
 
   function buildEventText(no) {
-    var g = evForm.guests, t = evTotal();
+    var g = G(), t = evTotal();
     var lines = ['🎉 *Заявка на стол №' + no + '* — Восточка', ''];
-    lines.push('Повод: ' + evForm.occasion);
+    if (evForm.occasion) lines.push('Повод: ' + evForm.occasion);
     lines.push('Дата: ' + fmtDate(evForm.date) + (evForm.time ? ', ' + evForm.time : ''));
     lines.push('Гостей: ' + g);
     lines.push(needsAddress() ? '📍 Место: ' + evForm.address : '🏪 Самовывоз');
@@ -861,7 +1083,7 @@
       rows.forEach(function (it) {
         var q = evQty(it.id);
         i++;
-        lines.push(i + '. ' + it.name + ' — ' + q + ' ' + it.unit + ' × ' + fmt(it.price) + ' = ' + fmt(q * it.price));
+        lines.push(i + '. ' + it.name + ' — ' + q + ' ' + it.unit + ' × ' + fmt(it.price) + ' = ' + fmt(q * it.price) + (it.preorder ? ' (на заказ)' : ''));
       });
     });
     var svc = EVENT_SERVICES.filter(function (s) { return evForm.svc[s.id]; });
@@ -870,59 +1092,53 @@
       svc.forEach(function (s) { lines.push('• ' + s.title + (s.price ? ' — ' + s.price : '')); });
     }
     lines.push('', '*Итого по меню: ' + fmt(t) + '*');
-    lines.push(evLines().length + ' ' + posWord(evLines().length) + ' · ≈ ' + fmt(Math.round(t / Math.max(1, g))) + ' на гостя');
+    lines.push(evLines().length + ' ' + posWord(evLines().length) + (g ? ' · ≈ ' + fmt(Math.round(t / g)) + ' на гостя' : ''));
     lines.push('', '👤 ' + form.name + ', ' + form.phone);
     if (evForm.comment) lines.push('💬 ' + evForm.comment);
     return lines.join('\n');
   }
 
   function submitEv() {
-    var errs = [], bad = [];
-    if (!evForm.date) { errs.push('дату'); bad.push('date'); }
-    if (!(evForm.guests > 0)) { errs.push('число гостей'); bad.push('guests'); }
-    if (needsAddress() && String(evForm.address || '').trim().length < 4) { errs.push('адрес'); bad.push('address'); }
-    if (!form.name.trim()) { errs.push('имя'); bad.push('name'); }
-    if (digits(form.phone).length < 10) { errs.push('телефон'); bad.push('phone'); }
-    var errEl = $('#evErr');
-    if (errs.length) {
-      errEl.textContent = 'Укажите: ' + errs.join(', ');
-      errEl.hidden = false;
-      markInvalid('#evOrderForm', bad);
-      return;
-    }
+    evTried = true;
+    var res = evErrors();
+    if (res.errs.length) { showErrors('#evOrderForm', '#evErr', res, 'Укажите: ', true); return; }
     var no = orderNumber();
     var text = buildEventText(no);
-    lastEvent = {
-      no: no, text: text, total: evTotal(), lines: evLines().length, guests: evForm.guests,
-      receipt: receiptHtml(), delivery: needsAddress(),
-    };
+    lastEvent = { no: no, text: text, receipt: receiptHtml() };
+    saveLast('event', lastEvent);
     openWa(text);
+    // the table is sent: start the next one from scratch (contacts stay)
     evSel = {};
+    takenSet = null;
+    evForm.guests = ''; evForm.occasion = ''; evForm.date = ''; evForm.time = ''; evForm.address = ''; evForm.comment = '';
     saveEv();
+    evTried = false;
     Object.keys(EVI).forEach(function (id) { updateEvRow(id); });
+    setGuests('');
+    var box = $('#occChips');
+    if (box) box.innerHTML = occChipsHtml();
     showEvSuccess();
   }
 
-  function showEvSuccess() {
+  function showEvSuccess(fromBanner) {
     var e = lastEvent;
+    if (!e) return;
+    if (fromBanner) openSheet('ev-success', { full: true });
     sheetMode = 'ev-success';
     $('#sheetTitle').textContent = 'Заявка №' + e.no;
     $('#sheetBack').hidden = true;
     $('#sheetExtra').innerHTML = '';
-    var steps = [
-      ['done', '✓', 'Заявка сформирована', e.lines + ' ' + posWord(e.lines) + ' на ' + fmt(e.total)],
-      ['', '2', 'Отправьте сообщение в WhatsApp', 'Нажмите «Отправить» в открывшемся чате'],
-      ['', '3', 'Мы свяжемся с вами', 'Подтвердим меню, сумму и время'],
-      ['', '4', e.delivery ? 'Привезём и накроем' : 'Заберёте заказ', e.delivery ? 'В назначенное время' : (C.address || '')],
-    ];
-    $('#sheetBody').innerHTML = '<div class="success">' +
-      '<div class="success-icon">' + ICON.check + '</div>' +
-      '<h4>Почти готово!</h4>' +
-      '<p>Мы открыли WhatsApp с вашей заявкой и полным чеком. Если чат не открылся — нажмите кнопку ниже.</p>' +
-      trackHtml(steps) + e.receipt + '</div>';
+    $('#sheetBody').innerHTML = (fromBanner
+        ? '<div class="success"><h4>Ваша заявка №' + e.no + '</h4></div>' +
+          sblock(1, 'Если ещё не отправили заявку', 'Откройте WhatsApp — заявка с полным чеком подставится сама, останется нажать «Отправить».',
+            '<button class="linkbtn" type="button" id="resendEv">Открыть WhatsApp с заявкой</button>')
+        : '<div class="success"><div class="success-icon">' + ICON.check + '</div><h4>Почти готово!</h4></div>' +
+          sblock(1, 'Отправьте заявку в WhatsApp', 'Чат с заявкой и полным чеком уже открыт — нажмите «Отправить».',
+            '<button class="linkbtn" type="button" id="resendEv">Чат не открылся? Открыть ещё раз</button>')) +
+      sblock(2, 'Мы свяжемся с вами', 'Подтвердим меню, сумму и время.') +
+      e.receipt;
     $('#sheetBody').scrollTop = 0;
-    setFoot('<div class="stack"><button class="btn btn--wa" type="button" id="resendEv">' + ICON.wa + ' Открыть WhatsApp ещё раз</button>' +
-      '<button class="btn btn--ghost" type="button" data-close>Готово</button></div>');
+    setFoot('<button class="btn btn--ghost" type="button" data-close>Готово</button>');
   }
 
   // ---------- static info ----------
@@ -953,9 +1169,15 @@
     if (t.hasAttribute('data-evadd')) { setEvQty(t.getAttribute('data-evadd'), 1); bump('#evbar'); return; }
     if (t.hasAttribute('data-evinc')) { a = t.getAttribute('data-evinc'); setEvQty(a, evQty(a) + 1); return; }
     if (t.hasAttribute('data-evdec')) { a = t.getAttribute('data-evdec'); setEvQty(a, evQty(a) - 1); return; }
-    if (t.hasAttribute('data-gstep')) { setGuests(evForm.guests + parseInt(t.getAttribute('data-gstep'), 10)); return; }
-    if (t.hasAttribute('data-gq')) { setGuests(parseInt(t.getAttribute('data-gq'), 10)); return; }
-    if (t.hasAttribute('data-evauto')) { autoFill(); return; }
+    if (t.hasAttribute('data-gstep')) {
+      var step = parseInt(t.getAttribute('data-gstep'), 10);
+      if (!G() && step < 0) return;
+      setGuests(Math.max(1, G() + step), { scroll: true });
+      return;
+    }
+    if (t.hasAttribute('data-gq')) { setGuests(parseInt(t.getAttribute('data-gq'), 10), { scroll: true }); return; }
+    if (t.hasAttribute('data-tset-take')) { takeSet(parseInt(t.getAttribute('data-tset-take'), 10)); return; }
+    if (t.hasAttribute('data-occ')) { setOccasion(t.getAttribute('data-occ')); return; }
     if (t.hasAttribute('data-evstep')) { openEvDetails(); return; }
     if (t.hasAttribute('data-open-combo')) { openCombo(); return; }
     if (t.hasAttribute('data-close')) { closeSheet(); return; }
@@ -963,26 +1185,39 @@
     if (t.hasAttribute('data-tab-go')) { switchTab(t.getAttribute('data-tab-go')); return; }
     if (t.hasAttribute('data-go')) { goTo(t.getAttribute('data-go')); return; }
     if (t.hasAttribute('data-step')) { openCheckout(); return; }
+    if (t.hasAttribute('data-last-open')) {
+      var kind = t.getAttribute('data-last-open');
+      var d = loadLast(kind);
+      if (d && kind === 'order') { lastOrder = d; showSuccess(true); }
+      else if (d && kind === 'event') { lastEvent = d; showEvSuccess(true); }
+      else renderLastBanner();
+      return;
+    }
+    if (t.hasAttribute('data-last-close')) { store.set('vk_last_' + t.getAttribute('data-last-close'), null); renderLastBanner(); return; }
     if (t.hasAttribute('data-clear')) {
       if (!clearArmed) { clearArmed = true; renderCart(); return; }
       clearArmed = false; cart = []; store.set('vk_cart', cart); refresh(); return;
     }
     if (t.hasAttribute('data-copy')) {
       var val = t.getAttribute('data-copy');
-      var done = function () { toast('Номер скопирован'); };
+      var done = function () { toast('Номер скопирован: ' + val); };
       if (navigator.clipboard) navigator.clipboard.writeText(val).then(done, function () { toast(val); });
       else toast(val);
       return;
     }
     if (t.id === 'openCart') { openCart(); return; }
     if (t.id === 'openEv') { openEvCheck(); return; }
-    if (t.id === 'sheetBack') { if (sheetMode === 'ev-details') openEvCheck(); else openCart(); return; }
+    if (t.id === 'sheetBack') { sheetBack(); return; }
     if (t.id === 'comboAdd') {
       add('c:' + COMBO.groups.map(function (g) { return comboPick[g.key]; }).join(':'));
       closeSheet();
       return;
     }
     if (t.id === 'resendWa' && lastOrder) { openWa(lastOrder.text); return; }
+    if (t.id === 'sendCheck' && lastOrder) {
+      openWa('Здравствуйте! Отправляю чек об оплате заказа №' + lastOrder.no + ' на ' + fmt(lastOrder.total) + ' (Kaspi).');
+      return;
+    }
     if (t.id === 'resendEv' && lastEvent) { openWa(lastEvent.text); return; }
     if (t.matches('#catnav a')) { e.preventDefault(); goTo(t.getAttribute('data-target')); }
   });
@@ -994,8 +1229,7 @@
       if (el.value === '') return;
       setEvQty(el.getAttribute('data-evinput'), parseInt(el.value, 10) || 0, { keepInput: true });
     } else if (el.id === 'evGuests') {
-      var g = parseInt(el.value, 10);
-      if (g > 0) setGuests(g);
+      setGuests(el.value);
     }
   });
   document.addEventListener('change', function (e) {
@@ -1003,7 +1237,7 @@
     if (el.hasAttribute('data-evinput')) {
       setEvQty(el.getAttribute('data-evinput'), parseInt(el.value, 10) || 0);
     } else if (el.id === 'evGuests') {
-      setGuests(parseInt(el.value, 10) || evForm.guests);
+      setGuests(el.value, { scroll: true });
       el.value = evForm.guests;
     } else if (el.name === 'svc') {
       evForm.svc[el.value] = el.checked;
@@ -1020,14 +1254,12 @@
   function evField(el) {
     var n = el.name;
     if (n === 'name' || n === 'phone') { form[n] = el.value; store.set('vk_form', form); }
-    else if (n === 'guests') { var g = parseInt(el.value, 10); if (g > 0) setGuests(g); }
+    else if (n === 'guests') setGuests(el.value);
+    else if (n === 'occasion') {
+      evForm.occasion = el.value; saveEv();
+      var box = $('#occChips'); if (box) box.innerHTML = occChipsHtml();
+    }
     else if (n in evForm && n !== 'svc') { evForm[n] = el.value; saveEv(); }
-  }
-  function clearInvalid(el, errSel, formSel) {
-    var f = el.closest('.field');
-    if (f) f.classList.remove('invalid');
-    var err = $(errSel);
-    if (err && !$(formSel + ' .invalid')) err.hidden = true;
   }
 
   var sheetBody = $('#sheetBody');
@@ -1041,7 +1273,10 @@
       if (el.name === 'mode' || el.name === 'when') renderCheckout();
       return;
     }
-    if (sheetMode === 'ev-details') evField(el);
+    if (sheetMode === 'ev-details') {
+      evField(el);
+      if (evTried) showErrors('#evOrderForm', '#evErr', evErrors(), 'Укажите: ', false);
+    }
   });
   sheetBody.addEventListener('input', function (e) {
     var el = e.target;
@@ -1049,10 +1284,10 @@
     if (sheetMode === 'checkout' && el.name in form) {
       form[el.name] = el.value;
       store.set('vk_form', form);
-      clearInvalid(el, '#orderErr', '#orderForm');
+      if (orderTried) showErrors('#orderForm', '#orderErr', orderErrors(), 'Заполните: ', false);
     } else if (sheetMode === 'ev-details') {
       evField(el);
-      clearInvalid(el, '#evErr', '#evOrderForm');
+      if (evTried) showErrors('#evOrderForm', '#evErr', evErrors(), 'Укажите: ', false);
     }
   });
   sheetBody.addEventListener('submit', function (e) {
@@ -1063,6 +1298,7 @@
   window.addEventListener('resize', updateStickyH);
 
   // ---------- init ----------
+  try { if (history.state && history.state.vk) history.replaceState(null, ''); } catch (e) { /* ignore */ }
   renderMenu();
   renderEvents();
   fillInfo();
@@ -1070,5 +1306,6 @@
   refresh();
   setupNav();
   updateStickyH();
+  renderLastBanner();
   if (location.hash === '#events') switchTab('events', { scroll: false });
 })();
