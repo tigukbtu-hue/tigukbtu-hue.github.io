@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lobster&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=5">
+  <link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body>
   <div class="page">
@@ -80,6 +80,14 @@
     </button>
   </div>
 
+  <div class="cartbar" id="evbar" hidden>
+    <button class="cartbar-btn" id="openEv" type="button">
+      <span class="cartbar-ic"><span class="cartbar-emoji" aria-hidden="true">🧾</span><span class="cartbar-count" id="evCount">0</span></span>
+      <span class="cartbar-label">Чек стола<small id="evGuestsLbl"></small></span>
+      <span class="cartbar-sum" id="evSum">0 ₸</span>
+    </button>
+  </div>
+
   <div class="sheet" id="sheet" hidden>
     <div class="sheet-backdrop" data-close></div>
     <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
@@ -98,8 +106,8 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="config.js?v=5"></script>
-  <script src="menu.js?v=5"></script>
-  <script src="app.js?v=5"></script>
+  <script src="config.js?v=6"></script>
+  <script src="menu.js?v=6"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>

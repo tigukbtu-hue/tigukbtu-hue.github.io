@@ -157,5 +157,107 @@ window.SETS = [
 // «Добавить к заказу?» — подсказки в корзине
 window.UPSELL = ['kompot', 'samsa-meat', 'tea-black', 'achuchuk', 'cheburek', 'tort-med-slice', 'fri'];
 
-// Для вкладки «Накрыть стол»: что можно сразу положить в корзину
-window.EVENT_ITEMS = ['tort-med-whole', 'whoopie-whole', 'bauyrsak', 'sazan-1kg'];
+// ============================================================
+//  «НАКРЫТЬ СТОЛ» — конструктор стола для мероприятий
+//  Клиент выбирает блюда и количество — сайт считает полный чек.
+//  id       — блюдо из меню выше (цена и фото берутся оттуда автоматически)
+//  unit     — единица в чеке: 'порц.', 'шт.', 'кг'
+//  name     — другое название для стола (если нужно)
+//  perGuest — сколько на 1 гостя кладёт кнопка «Подобрать меню»:
+//             1 = по одной на гостя, 0.5 = одна на двоих, 0.1 = одна на 10 гостей.
+//             Нет perGuest — блюдо не подбирается автоматически.
+// ============================================================
+window.EVENT_MENU = [
+  {
+    id: 'hot', title: 'Горячие блюда', nav: '🍛 Горячее',
+    items: [
+      { id: 'plov', unit: 'порц.', perGuest: 1 },
+      { id: 'manty', unit: 'порц.' },
+      { id: 'kuyrdak', unit: 'порц.' },
+      { id: 'lagman-fried', unit: 'порц.' },
+      { id: 'lagman-guiru', unit: 'порц.' },
+      { id: 'gulyash', unit: 'порц.' },
+      { id: 'bifshteks', unit: 'порц.' },
+      { id: 'brizol', unit: 'порц.' },
+      { id: 'kotlety', unit: 'порц.' },
+    ],
+  },
+  {
+    id: 'grill', title: 'Шашлык и сазан', nav: '🍢 Шашлык, сазан',
+    items: [
+      { id: 'shashlik-lamb', unit: 'порц.' },
+      { id: 'shashlik-chicken', unit: 'порц.' },
+      { id: 'lulya', unit: 'порц.' },
+      { id: 'sazan-1kg', name: 'Сазан жареный', unit: 'кг', note: '12–14 шт. в 1 кг' },
+      { id: 'sazan-portion', unit: 'порц.' },
+    ],
+  },
+  {
+    id: 'soup', title: 'Первые блюда', nav: '🍲 Первые',
+    items: [
+      { id: 'naryn', unit: 'порц.' },
+      { id: 'shorpa', unit: 'порц.' },
+      { id: 'mashkhorda', unit: 'порц.' },
+      { id: 'pelmeni', unit: 'порц.' },
+      { id: 'lagman-soup', unit: 'порц.' },
+    ],
+  },
+  {
+    id: 'salad', title: 'Салаты и гарниры', nav: '🥗 Салаты',
+    items: [
+      { id: 'salad-fresh', unit: 'порц.', perGuest: 0.5 },
+      { id: 'achuchuk', unit: 'порц.', perGuest: 0.5 },
+      { id: 'kapusta', unit: 'порц.' },
+      { id: 'ris', unit: 'порц.' },
+      { id: 'pure', unit: 'порц.' },
+      { id: 'grechka', unit: 'порц.' },
+      { id: 'makarony', unit: 'порц.' },
+      { id: 'fri', unit: 'порц.' },
+    ],
+  },
+  {
+    id: 'bake', title: 'Выпечка', nav: '🥟 Выпечка',
+    items: [
+      { id: 'samsa-meat', unit: 'шт.', perGuest: 1 },
+      { id: 'samsa-chicken', unit: 'шт.' },
+      { id: 'samsa-cheese', unit: 'шт.' },
+      { id: 'cheburek', unit: 'шт.' },
+      { id: 'bauyrsak', unit: 'кг', note: '', perGuest: 0.1 },
+    ],
+  },
+  {
+    id: 'sweet', title: 'Торты и десерты', nav: '🎂 Торты',
+    items: [
+      { id: 'tort-med-whole', unit: 'шт.', perGuest: 0.08 }, // ≈ 1 торт на 12 гостей
+      { id: 'whoopie-whole', unit: 'шт.' },
+      { id: 'tort-med-slice', name: 'Медовый торт, кусок', unit: 'шт.', note: '' },
+      { id: 'whoopie-slice', name: 'Вупи пай, кусок', unit: 'шт.', note: '' },
+      { id: 'tvorozhny', name: 'Творожный торт, кусок', unit: 'шт.', note: '' },
+      { id: 'banoffee', name: 'Баноффи пай, кусок', unit: 'шт.', note: '' },
+      { id: 'brownie', unit: 'шт.' },
+    ],
+  },
+  {
+    id: 'drinks', title: 'Напитки', nav: '🍹 Напитки',
+    items: [
+      { id: 'kompot', name: 'Компот 0,5 л', unit: 'шт.', note: '', perGuest: 1 },
+      { id: 'tea-black', unit: 'порц.', perGuest: 1 },
+      { id: 'tea-green', unit: 'порц.' },
+      { id: 'tea-lemon', unit: 'порц.' },
+      { id: 'cola', unit: 'шт.' },
+      { id: 'pepsi', unit: 'шт.' },
+      { id: 'fuse-tea', unit: 'шт.' },
+      { id: 'maxi-tea', unit: 'шт.' },
+    ],
+  },
+];
+
+// Услуги для стола. price — текст вместо цены (в итог не входит).
+// address: true — если услуга выбрана, спрашиваем адрес. on: true — включена по умолчанию.
+window.EVENT_SERVICES = [
+  { id: 'serve', emoji: '🍽️', title: 'Накрыть и сервировать стол', sub: 'Привезём, расставим и красиво накроем', price: 'по договорённости', address: true, on: true },
+  { id: 'delivery', emoji: '🚚', title: 'Доставка до места', sub: 'Через Яндекс Доставку к нужному времени', price: 'по тарифу', address: true, on: true },
+];
+
+// Сколько гостей стоит в конструкторе по умолчанию
+window.EVENT_GUESTS = 20;
