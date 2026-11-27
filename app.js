@@ -465,9 +465,15 @@
   function reviewsHtml(id) {
     var R = window.REVIEWS || [];
     if (!R.length) return '';
+    // looks like a comment in Instagram (the review itself is real)
     return '<section class="sec" id="' + id + '">' + secHead('Отзывы') + '<div class="pad">' + R.map(function (r) {
-      return '<figure class="review"><blockquote>' + esc(r.text) + '</blockquote>' +
-        '<figcaption>' + esc(r.author) + (r.source ? ' · ' + esc(r.source) : '') + '</figcaption></figure>';
+      return '<figure class="igc">' +
+        '<div class="igc-top"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17.3" cy="6.7" r="1.2" fill="currentColor"/></svg><span>Отзывы</span><small>Instagram</small></div>' +
+        '<div class="igc-row"><span class="igc-ava"><span>' + esc((r.author || '?').charAt(0)) + '</span></span>' +
+        '<div class="igc-body"><b>' + esc(r.author) + '</b> <span class="igc-act">прокомментировал(-а):</span>' +
+        '<blockquote>' + esc(r.text) + '</blockquote>' +
+        '<div class="igc-foot"><span>Ответить</span></div></div>' +
+        '<span class="igc-like"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 7.9 3.6 4.5 7 4.5c2 0 3.4 1.1 5 3 1.6-1.9 3-3 5-3 3.4 0 5.6 3.4 4.3 6.8-1.8 4.6-9.3 9.2-9.3 9.2z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span></div></figure>';
     }).join('') +
       (C.instagram ? '<a class="review-more" href="https://instagram.com/' + esc(C.instagram) + '" target="_blank" rel="noopener">Больше отзывов и фото в Instagram →</a>' : '') +
       '</div></section>';
