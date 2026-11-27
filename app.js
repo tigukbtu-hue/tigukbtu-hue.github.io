@@ -312,7 +312,7 @@
         return '<div class="card-row"><span class="card-price">' + fmt(x ? x.price : 0) + '</span>' +
           '<button class="add-round add-round--red" type="button" data-add="' + k + '" aria-label="Добавить: ' + nm + '">+</button></div>';
       }
-      v = '';
+      return '<div class="card-price card-price--on">' + fmt(x ? x.price : 0) + '</div>' + ctrlHtml(key, '');
     }
     if (v === 'mini') {
       if (!q) {
@@ -380,7 +380,7 @@
           return '<li>' + esc(itemName(x[0])) + (it && it.note ? ' (' + esc(it.note) + ')' : '') + ' × ' + x[1] + '</li>';
         }).join('') + '</ul>' +
         '<div class="setcard-foot"><div>' + (p.sum > p.price ? '<span class="price-old">' + fmt(p.sum) + '</span>' : '') +
-        '<span class="price-new">' + fmt(p.price) + '</span></div>' + ctrl('s:' + s.id) + '</div></div></article>';
+        '<span class="price-new">' + fmt(p.price) + '</span></div>' + ctrl('s:' + s.id, 'sm') + '</div></div></article>';
     }).join('');
     return '<section class="sec" id="sec-sets">' + secHead('Сеты') +
       '<p class="sec-lead">Готовые наборы для семьи и компании — выгоднее, чем по отдельности</p>' +
