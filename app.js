@@ -128,6 +128,25 @@
   function tableSetTotal(s) {
     return s.items.reduce(function (a, p) { return a + (EVI[p[0]] ? EVI[p[0]].price * p[1] : 0); }, 0);
   }
+  // A ready table recalculated for another number of guests
+  function scaledItems(s, to) {
+    var out = {};
+    s.items.forEach(function (p) {
+      if (!EVI[p[0]] || !(p[1] > 0)) return;
+      var q = p[1];
+      if (to !== s.guests) {
+        q = p[1] * to / s.guests;
+        if (q < 0.5) return; // e.g. a whole cake for 1–5 guests is not added
+        q = Math.ceil(q - 1e-9);
+      }
+      out[p[0]] = q;
+    });
+    return out;
+  }
+  function scaledTotal(s, to) {
+    var it = scaledItems(s, to);
+    return Object.keys(it).reduce(function (a, id) { return a + EVI[id].price * it[id]; }, 0);
+  }
 
   // ---------- state ----------
   var cart = store.get('vk_cart', []).filter(function (r) { return r && r.key && r.qty > 0 && resolve(r.key); });
@@ -156,6 +175,9 @@
   var ignorePop = false;
   var orderTried = false;
   var evTried = false;
+  var freshTime = false;
+  var commentOpen = false;
+  var openDet = {};
 
   // ---------- last order / request (survives a reload while the customer is in WhatsApp) ----------
   function loadLast(kind) {
@@ -167,8 +189,8 @@
     store.set('vk_last_' + kind, { data: data, ts: Date.now() });
     renderLastBanner();
   }
-  function bannerRow(kind, ic, title, sub) {
-    return '<div class="last-row"><button class="last-open" type="button" data-last-open="' + kind + '">' +
+  function bannerRow(kind, ic, title, sub, mod) {
+    return '<div class="last-row' + (mod ? ' last-row--' + mod : '') + '"><button class="last-open" type="button" data-last-open="' + kind + '">' +
       '<span class="last-ic" aria-hidden="true">' + ic + '</span>' +
       '<span class="last-text"><b>' + esc(title) + '</b><small>' + esc(sub) + '</small></span><span class="last-go" aria-hidden="true">›</span></button>' +
       '<button class="last-x" type="button" data-last-close="' + kind + '" aria-label="Скрыть напоминание">×</button></div>';
@@ -178,7 +200,11 @@
     if (!el) return;
     var o = loadLast('order'), e = loadLast('event');
     var rows = [];
-    if (o) rows.push(bannerRow('order', '🧾', 'Заказ №' + o.no + ' · ' + fmt(o.total), o.pay === 'kaspi' ? 'Оплата Kaspi и чек' : 'Детали заказа'));
+    if (o) {
+      rows.push(o.pay === 'kaspi'
+        ? bannerRow('order', '💳', 'Заказ №' + o.no, 'Оплатить ' + fmt(o.total) + ' в Kaspi · отправить чек', 'kaspi')
+        : bannerRow('order', '🧾', 'Заказ №' + o.no + ' · ' + fmt(o.total), 'Детали заказа'));
+    }
     if (e) rows.push(bannerRow('event', '🎉', 'Заявка на стол №' + e.no, 'Чек стола и WhatsApp'));
     el.innerHTML = rows.join('');
     el.hidden = !rows.length;
@@ -306,9 +332,27 @@
       '</div><div class="combo-img"><img src="' + esc(COMBO.image) + '" alt="" loading="lazy"></div></div></section>';
   }
 
+  // A section without any photo is shown as a compact list, with photos — as a grid of cards.
+  // In menu.js a section can force it: layout: 'grid' or layout: 'list'.
+  function sectionLayout(sec) {
+    if (sec.layout === 'grid' || sec.layout === 'list') return sec.layout;
+    return sec.items.some(function (it) { return it.img; }) ? 'grid' : 'list';
+  }
+  function rowCard(it) {
+    var note = [it.note, it.preorder ? 'на заказ' : ''].filter(Boolean).join(' · ');
+    return '<article class="mrow' + (it.highlight ? ' mrow--hl' : '') + '"><div class="thumb">' + media(it) + '</div>' +
+      '<div class="mrow-main"><div class="mrow-name">' + esc(it.name) + '</div>' +
+      (note ? '<div class="card-note">' + esc(note) + '</div>' : '') +
+      '<div class="mrow-price">' + fmt(it.price) + '</div></div>' +
+      ctrl('i:' + it.id, 'sm') + '</article>';
+  }
   function sectionHtml(sec) {
+    var list = sectionLayout(sec) === 'list';
     return '<section class="sec" id="sec-' + esc(sec.id) + '">' + secHead(sec.title) +
-      '<div class="grid">' + sec.items.map(function (it) { return card(ITEMS[it.id]); }).join('') + '</div></section>';
+      (list
+        ? '<div class="mlist">' + sec.items.map(function (it) { return rowCard(ITEMS[it.id]); }).join('') + '</div>'
+        : '<div class="grid">' + sec.items.map(function (it) { return card(ITEMS[it.id]); }).join('') + '</div>') +
+      '</section>';
   }
 
   function renderMenu() {
@@ -342,7 +386,7 @@
   }
   function evSumHtml(id) {
     var it = EVI[id], q = evQty(id);
-    return q ? q + ' ' + esc(it.unit) + ' = <b>' + fmt(q * it.price) + '</b>' : '';
+    return q ? '= <b>' + fmt(q * it.price) + '</b>' : '';
   }
   function evRow(it) {
     return '<div class="evrow' + (evQty(it.id) ? ' on' : '') + '" data-evrow="' + esc(it.id) + '">' +
@@ -369,6 +413,7 @@
       '<div class="tset-body"><ul class="tset-list">' + list + '</ul>' +
       '<div class="tset-total">' + fmt(t) + '</div>' +
       '<div class="tset-per">≈ ' + fmt(Math.round(t / s.guests)) + ' на гостя</div>' +
+      '<div class="tset-scaled" hidden></div>' +
       '<button class="btn btn--sm" type="button" data-tset-take="' + s.guests + '">Взять этот стол</button>' +
       '</div></article>';
   }
@@ -380,26 +425,21 @@
   }
 
   function renderEvents() {
-    var hero = '<section class="ev-hero">' +
-      '<h2 class="ev-title">Накроем стол</h2>' +
-      '<p class="ev-lead">Соберите стол сами: выберите блюда и количество — сразу увидите полный чек.</p>' +
-      '<div class="ev-occ"><span class="ev-occ-label">Ваш повод:</span><div class="ev-chips" id="occChips">' + occChipsHtml() + '</div></div>' +
-      '<div class="ev-photos"><img src="img/plov.jpg" alt="Плов"><img src="img/tort-med.jpg" alt="Медовый торт"><img src="img/samsa1.jpg" alt="Самса"></div>' +
-      '<ol class="ev-steps"><li><b>1</b>Гости</li><li><b>2</b>Блюда и количество</li><li><b>3</b>Чек и заявка</li></ol>' +
-      '<button class="btn btn--gold" type="button" data-go="evs-guests">Собрать стол</button>' +
-      '</section>';
-
     var quick = [10, 20, 30, 50, 100].map(function (n) {
       return '<button type="button" class="gq' + (G() === n ? ' on' : '') + '" data-gq="' + n + '">' + n + '</button>';
     }).join('');
-    var guests = '<section class="sec" id="evs-guests">' + secHead('Сколько гостей?') +
-      '<div class="pad"><div class="block">' +
+    var hero = '<section class="sec ev-hero" id="evs-guests">' +
+      '<h2 class="ev-title">Накроем стол</h2>' +
+      '<p class="ev-lead">Возьмите готовый стол или соберите свой из блюд — сразу увидите полный чек.</p>' +
+      '<div class="ev-guests"><div class="ev-guests-title">Сколько гостей?</div>' +
       '<div class="guests"><button type="button" class="g-btn" data-gstep="-1" aria-label="Меньше гостей">−</button>' +
       '<label class="g-val"><input id="evGuests" type="number" inputmode="numeric" min="1" max="2000" placeholder="—" value="' + (G() || '') + '" aria-label="Количество гостей">' +
       '<span id="evGuestsWord">' + (G() ? guestsNom(G()) : 'гостей') + '</span></label>' +
       '<button type="button" class="g-btn" data-gstep="1" aria-label="Больше гостей">+</button></div>' +
-      '<div class="gq-row">' + quick + '</div>' +
-      '</div></div></section>';
+      '<div class="gq-row">' + quick + '</div></div>' +
+      '<div class="ev-occ"><span class="ev-occ-label">Ваш повод:</span><div class="ev-chips" id="occChips">' + occChipsHtml() + '</div></div>' +
+      '<div class="ev-photos"><img src="img/plov.jpg" alt="Плов"><img src="img/tort-med.jpg" alt="Медовый торт"><img src="img/samsa1.jpg" alt="Самса"></div>' +
+      '</section>';
 
     var sets = EVENT_SETS.length ? '<section class="sec" id="evs-sets">' + secHead('Готовые столы') +
       '<p class="sec-lead" id="tsetHint"></p>' +
@@ -420,7 +460,7 @@
     var help = '<div class="pad" style="margin-top:16px"><p class="note"><span class="note-ic">💬</span><span>Не знаете, что выбрать? ' +
       '<a href="' + esc(waUrl('Здравствуйте! Хочу заказать стол на мероприятие, подскажите по меню.')) + '" target="_blank" rel="noopener">Напишите нам в WhatsApp</a> — подскажем.</span></p></div>';
 
-    $('#view-events').innerHTML = hero + guests + sets + intro + cats + svc + help;
+    $('#view-events').innerHTML = hero + sets + intro + cats + svc + help;
     markMatchingSet(false);
     updateEvCounts();
   }
@@ -493,6 +533,10 @@
       var b = $('.tset-badge', c);
       b.hidden = !on;
       b.textContent = exact ? 'Вам подходит' : 'Ближе всего';
+      var sc = $('.tset-scaled', c);
+      var showSc = on && !exact && g > 0;
+      sc.hidden = !showSc;
+      sc.textContent = showSc ? 'На ' + g + ' ' + guestsWord(g) + ': ' + fmt(scaledTotal(m, g)) : '';
       if (on && scroll) c.parentNode.scrollTo({ left: c.offsetLeft - 16, behavior: scroll === 'instant' ? 'auto' : 'smooth' });
     });
     var hint = $('#tsetHint');
@@ -532,17 +576,7 @@
     armedSet = null;
     var g = G();
     var to = setTargetFor(sg);
-    evSel = {};
-    s.items.forEach(function (p) {
-      if (!EVI[p[0]] || !(p[1] > 0)) return;
-      var q = p[1];
-      if (to !== sg) {
-        q = p[1] * to / sg;
-        if (q < 0.5) return; // e.g. a whole cake for 1–5 guests is not added
-        q = Math.ceil(q - 1e-9);
-      }
-      evSel[p[0]] = q;
-    });
+    evSel = scaledItems(s, to);
     saveEv();
     Object.keys(EVI).forEach(function (id) { updateEvRow(id); });
     if (!g) setGuests(sg);
@@ -572,6 +606,7 @@
     navById = {};
     $$('a', nav).forEach(function (a) { navById[a.getAttribute('data-target')] = a; });
     nav.scrollLeft = 0;
+    navCurrent = null;
   }
 
   function switchTab(name, opts) {
@@ -588,6 +623,7 @@
       var top = $('#sticky').offsetTop;
       if (window.scrollY > top) window.scrollTo({ top: top, behavior: 'auto' });
     }
+    navUpdate();
   }
 
   function goTo(id) {
@@ -603,21 +639,28 @@
     $$('.sec, #evs-build').forEach(function (s) { s.style.scrollMarginTop = (h + 6) + 'px'; });
   }
 
+  var navCurrent = null;
+  var navTicking = false;
+  function navUpdate() {
+    navTicking = false;
+    var line = $('#sticky').offsetHeight + 12;
+    var cur = null;
+    $$(currentTab === 'events' ? '#view-events [id^="evs-"]' : '#view-menu section[id^="sec-"]').forEach(function (s) {
+      if (navById[s.id] && s.getBoundingClientRect().top <= line) cur = s.id;
+    });
+    if (cur === navCurrent) return;
+    navCurrent = cur;
+    $$('#catnav a').forEach(function (x) { x.classList.toggle('active', x.getAttribute('data-target') === cur); });
+    var a = cur && navById[cur];
+    if (a) $('#catnav').scrollTo({ left: a.offsetLeft - 12, behavior: 'smooth' });
+  }
   function setupNav() {
-    if (!('IntersectionObserver' in window)) return;
-    var current = null;
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (en) {
-        if (!en.isIntersecting) return;
-        var a = navById[en.target.id];
-        if (a && en.target.id !== current) {
-          current = en.target.id;
-          $$('#catnav a').forEach(function (x) { x.classList.toggle('active', x === a); });
-          $('#catnav').scrollTo({ left: a.offsetLeft - 12, behavior: 'smooth' });
-        }
-      });
-    }, { rootMargin: '-130px 0px -65% 0px' });
-    $$('section[id^="sec-"], section[id^="evs-"]').forEach(function (s) { io.observe(s); });
+    window.addEventListener('scroll', function () {
+      if (navTicking) return;
+      navTicking = true;
+      requestAnimationFrame(navUpdate);
+    }, { passive: true });
+    navUpdate();
   }
 
   // ---------- bars & refresh ----------
@@ -737,11 +780,12 @@
     var hasPre = cart.some(function (r) { var x = resolve(r.key); return x && x.preorder; });
     var rows = cart.map(function (r) {
       var x = resolve(r.key);
+      var det = [x.details, x.preorder && r.key.indexOf('i:') === 0 ? 'на заказ' : ''].filter(Boolean).join(' · ');
       return '<div class="ci"><div class="thumb">' + x.thumb + '</div>' +
-        '<div><div class="ci-name">' + esc(x.name) + '</div>' +
-        ((x.details || x.preorder) ? '<div class="ci-det">' + esc([x.details, x.preorder && r.key.indexOf('i:') === 0 ? 'на заказ' : ''].filter(Boolean).join(' · ')) + '</div>' : '') +
-        '<div class="ci-price">' + fmt(x.price * r.qty) + '</div></div>' +
-        '<div data-ctrl="' + esc(r.key) + '" data-v="sm">' + ctrlHtml(r.key, 'sm') + '</div></div>';
+        '<div class="ci-main"><div class="ci-name">' + esc(x.name) + '</div>' +
+        (det ? '<div class="ci-det' + (openDet[r.key] ? ' open' : '') + '" data-clamp="' + esc(r.key) + '">' + esc(det) + '</div>' : '') +
+        '<div class="ci-bottom"><div class="ci-price">' + fmt(x.price * r.qty) + '</div>' +
+        '<div data-ctrl="' + esc(r.key) + '" data-v="sm">' + ctrlHtml(r.key, 'sm') + '</div></div></div></div>';
     }).join('');
     var ups = UPSELL.filter(function (id) { return ITEMS[id] && !qtyOf('i:' + id); }).slice(0, 6).map(function (id) {
       var it = ITEMS[id];
@@ -799,6 +843,8 @@
   function openCheckout() {
     clearArmed = false;
     orderTried = false;
+    freshTime = false;
+    commentOpen = false;
     openSheet('checkout', { title: 'Оформление', full: true, back: true });
     renderCheckout();
     $('#sheetBody').scrollTop = 0;
@@ -827,15 +873,17 @@
       '<div class="block"><h4 class="block-title">Когда</h4>' +
       seg('when', form.when, [['asap', '⚡ Как можно скорее'], ['time', '🕐 Ко времени']]) +
       (form.when === 'time' ? '<div style="margin-top:12px">' + field('time', 'Время', 'type="time"', form.time) +
-        '<p class="sum-note">Если это время сегодня уже прошло, заказ будет на завтра — напишем в сообщении.</p></div>' : '') +
+        '<p class="sum-note" id="timeDay">' + timeDayText() + '</p></div>' : '') +
       '</div>' +
       '<div class="block"><h4 class="block-title">Получатель</h4><div class="row2">' +
       field('name', 'Имя', 'autocomplete="given-name" placeholder="Ваше имя"', form.name) +
       field('phone', 'Телефон', 'type="tel" inputmode="tel" autocomplete="tel" placeholder="+7 7__ ___ __ __"', form.phone) +
       '</div></div>' +
       '<div class="block"><h4 class="block-title">Оплата</h4>' + payHtml() + '</div>' +
-      '<div class="block"><h4 class="block-title">Комментарий</h4>' +
-      field('comment', '', 'placeholder="Например: без лука, приборы на 3 человек" aria-label="Комментарий к заказу"', form.comment, 'textarea') + '</div>' +
+      (form.comment || commentOpen
+        ? '<div class="block"><h4 class="block-title">Комментарий</h4>' +
+          field('comment', '', 'placeholder="Например: без лука, приборы на 3 человек" aria-label="Комментарий к заказу"', form.comment, 'textarea') + '</div>'
+        : '<button type="button" class="addlink" data-comment-open>+ Добавить комментарий</button>') +
       '<div class="block"><h4 class="block-title">Ваш заказ</h4>' + thumbs +
       '<div class="sum-row"><span>Товары, ' + n + ' шт.</span><span>' + fmt(t) + '</span></div>' +
       '<div class="sum-row"><span>Доставка</span><span>' + (form.mode === 'delivery' ? 'по тарифу Яндекса' : 'самовывоз, бесплатно') + '</span></div>' +
@@ -844,9 +892,12 @@
     body.scrollTop = scroll;
     setFoot('<p class="form-err" id="orderErr" hidden style="margin-bottom:8px"></p>' +
       '<button class="btn btn--wa btn--split" type="submit" form="orderForm"' + (minOk ? '' : ' disabled') + '>' +
-      '<span style="display:flex;align-items:center;gap:8px">' + ICON.wa + 'Отправить заказ</span><span>' + fmt(t) + '</span></button>' +
-      '<p class="foot-hint">Откроется WhatsApp с готовым сообщением — нажмите «Отправить»</p>');
-    if (orderTried) showErrors('#orderForm', '#orderErr', orderErrors(), 'Заполните: ', false);
+      '<span style="display:flex;align-items:center;gap:8px">' + ICON.wa + '<span>Отправить<span class="lbl-x"> заказ</span></span></span>' +
+      '<span class="btn-sum">' + fmt(t) + (form.mode === 'delivery' ? '<small>+ доставка</small>' : '') + '</span></button>' +
+      '<p class="foot-hint">' + (form.pay === 'kaspi' && C.kaspiPhone
+        ? 'Нажмите «Отправить» в WhatsApp — номер Kaspi и сумма будут в сообщении'
+        : 'Откроется WhatsApp с готовым сообщением — нажмите «Отправить»') + '</p>');
+    if (orderTried) showErrors('#orderForm', '#orderErr', shownOrderErrors(), 'Заполните: ', false);
   }
 
   // ---------- WhatsApp ----------
@@ -862,6 +913,10 @@
     var now = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
     return time && time <= now ? 'завтра' : 'сегодня';
   }
+  function timeDayText() {
+    return form.time ? 'Заказ на ' + dayFor(form.time) + ', ' + form.time : 'Если это время сегодня уже прошло, заказ будет на завтра.';
+  }
+  function updateTimeDay() { var td = $('#timeDay'); if (td) td.textContent = timeDayText(); }
 
   // ---------- validation ----------
   function orderErrors() {
@@ -869,7 +924,8 @@
     if (form.mode === 'delivery' && String(form.address || '').trim().length < 4) { errs.push('адрес'); bad.push('address'); }
     if (form.when === 'time' && !form.time) { errs.push('время'); bad.push('time'); }
     if (!String(form.name || '').trim()) { errs.push('имя'); bad.push('name'); }
-    if (digits(form.phone).length < 10) { errs.push('телефон'); bad.push('phone'); }
+    var pd = digits(form.phone).length;
+    if (pd < 10) { errs.push(pd ? 'телефон (не хватает цифр)' : 'телефон'); bad.push('phone'); }
     return { errs: errs, bad: bad };
   }
   function evErrors() {
@@ -879,8 +935,16 @@
     if (!G()) { errs.push('число гостей'); bad.push('guests'); }
     if (needsAddress() && String(evForm.address || '').trim().length < 4) { errs.push('адрес'); bad.push('address'); }
     if (!String(form.name || '').trim()) { errs.push('имя'); bad.push('name'); }
-    if (digits(form.phone).length < 10) { errs.push('телефон'); bad.push('phone'); }
+    var pd = digits(form.phone).length;
+    if (pd < 10) { errs.push(pd ? 'телефон (не хватает цифр)' : 'телефон'); bad.push('phone'); }
     return { errs: errs, bad: bad };
+  }
+  // a time field that has just appeared is not marked red until the next "send"
+  function shownOrderErrors() {
+    var res = orderErrors();
+    var i = res.bad.indexOf('time');
+    if (freshTime && i >= 0) { res.bad.splice(i, 1); res.errs.splice(i, 1); }
+    return res;
   }
   function showErrors(formSel, errSel, res, prefix, focus) {
     $$(formSel + ' .field').forEach(function (f) { f.classList.remove('invalid'); });
@@ -908,13 +972,21 @@
     lines.push(form.mode === 'delivery' ? '🚚 Доставка: ' + form.address + (form.entrance ? ', ' + form.entrance : '') : '🏪 Самовывоз');
     lines.push('⏰ ' + (form.when === 'time' ? 'Ко времени: ' + dayFor(form.time) + ', ' + form.time : 'Как можно скорее'));
     lines.push('👤 ' + form.name + ', ' + form.phone);
-    lines.push(form.pay === 'kaspi' ? '💳 Оплата: перевод Kaspi — чек пришлю в этот чат' : '💵 Оплата: наличными при получении');
     if (form.comment) lines.push('💬 ' + form.comment);
+    lines.push('');
+    if (form.pay === 'kaspi') {
+      lines.push('💳 *Оплата Kaspi:* ' + fmt(total()) + (form.mode === 'delivery' ? ' за еду' : ''));
+      if (C.kaspiPhone) lines.push('Номер Kaspi: ' + C.kaspiPhone);
+      lines.push('Переведу и пришлю чек в этот чат.');
+    } else {
+      lines.push('💵 Оплата: наличными при получении');
+    }
     return lines.join('\n');
   }
 
   function submitOrder() {
     orderTried = true;
+    freshTime = false;
     var res = orderErrors();
     if (res.errs.length) { showErrors('#orderForm', '#orderErr', res, 'Заполните: ', true); return; }
     var no = orderNumber();
@@ -940,15 +1012,17 @@
     return '<div class="sblock sblock--kaspi"><span class="sblock-n">' + n + '</span><div>' +
       '<div class="kaspi-title"><span>Оплатите через</span>' + kaspiMark(true) + '</div>' +
       '<p class="kaspi-line">' + (o.mode === 'delivery' ? 'Переведите за еду:' : 'Переведите:') + '</p>' +
-      '<div class="kaspi-amount">' + fmt(o.total) + '</div>' +
+      '<div class="kaspi-amount-row"><div class="kaspi-amount">' + fmt(o.total) + '</div>' +
+        '<button type="button" class="kaspi-copy" data-copy="' + Math.round(o.total) + '" data-copy-msg="Сумма скопирована">Скопировать сумму</button></div>' +
       (o.mode === 'delivery' ? '<p class="kaspi-sub">Стоимость доставки посчитаем по тарифу Яндекса и напишем в WhatsApp.</p>' : '') +
       (C.kaspiPhone ? '<p class="kaspi-line">На номер Kaspi:</p><div class="kaspi-num"><span>' + esc(C.kaspiPhone) + '</span>' +
-        '<button type="button" data-copy="' + esc(C.kaspiPhone) + '">Скопировать номер</button></div>' : '') +
+        '<button type="button" data-copy="' + esc(C.kaspiPhone) + '" data-copy-msg="Номер скопирован">Скопировать номер</button></div>' : '') +
       (C.kaspiName ? '<p class="kaspi-sub">Получатель: ' + esc(C.kaspiName) + '</p>' : '') +
       (C.kaspiQr ? '<img class="pay-qr" src="' + esc(C.kaspiQr) + '" alt="Kaspi QR">' : '') +
       '<p class="kaspi-line">Затем отправьте чек в WhatsApp:</p>' +
       '<p class="kaspi-sub">Сохраните чек в Kaspi или сделайте скриншот, потом в чате нажмите 📎 и прикрепите его.</p>' +
       '<button class="btn btn--white" type="button" id="sendCheck">' + ICON.wa + ' Открыть WhatsApp</button>' +
+      '<p class="kaspi-sub kaspi-sub--soft">Номер и сумма есть в вашем сообщении в WhatsApp — можно оплатить и оттуда.</p>' +
       '</div></div>';
   }
 
@@ -961,17 +1035,27 @@
     $('#sheetBack').hidden = true;
     $('#sheetExtra').innerHTML = '';
     var n = 1;
-    var html = fromBanner
-      ? '<div class="success"><h4>Ваш заказ №' + o.no + '</h4><p>' + fmt(o.total) + ' · ' + (o.mode === 'delivery' ? 'доставка' : 'самовывоз') + '</p></div>' +
-        sblock(n++, 'Если ещё не отправили заказ', 'Откройте WhatsApp — сообщение с заказом подставится само, останется нажать «Отправить».',
-          '<button class="linkbtn" type="button" id="resendWa">Открыть WhatsApp с заказом</button>')
-      : '<div class="success"><div class="success-icon">' + ICON.check + '</div><h4>Почти готово!</h4></div>' +
-        sblock(n++, 'Отправьте заказ в WhatsApp', 'Чат с вашим заказом уже открыт — нажмите «Отправить».',
+    var kaspi = o.pay === 'kaspi' && (C.kaspiPhone || C.kaspiQr);
+    var html;
+    if (fromBanner) {
+      // back from WhatsApp: payment comes first
+      html = '<div class="success"><h4>Ваш заказ №' + o.no + '</h4><p>' + fmt(o.total) + ' · ' + (o.mode === 'delivery' ? 'доставка' : 'самовывоз') + '</p></div>';
+      if (!kaspi) {
+        html += sblock(n++, 'Если ещё не отправили заказ', 'Откройте WhatsApp — сообщение с заказом подставится само, останется нажать «Отправить».',
+          '<button class="linkbtn" type="button" id="resendWa">Открыть WhatsApp с заказом</button>');
+      }
+    } else {
+      html = '<div class="success"><div class="success-icon success-icon--wa">' + ICON.wa + '</div><h4>Осталось отправить заказ</h4></div>' +
+        sblock(n++, 'Нажмите «Отправить» в WhatsApp', 'Чат с вашим заказом уже открыт.',
           '<button class="linkbtn" type="button" id="resendWa">Чат не открылся? Открыть ещё раз</button>');
-    if (o.pay === 'kaspi' && (C.kaspiPhone || C.kaspiQr)) html += kaspiBlock(n++, o);
+    }
+    if (kaspi) html += kaspiBlock(n++, o);
     html += o.mode === 'delivery'
       ? sblock(n++, 'Ждите курьера', 'Подтвердим заказ и время доставки в WhatsApp.')
       : sblock(n++, 'Заберите заказ', (C.address ? C.address + '. ' : '') + (o.pay === 'cash' ? 'Оплата при получении: ' + fmt(o.total) + '. ' : '') + 'Напишем в WhatsApp, когда будет готов.');
+    if (fromBanner && kaspi) {
+      html += '<p class="resend-line">Ещё не отправили заказ? <button class="linkbtn" type="button" id="resendWa">Открыть WhatsApp с заказом</button></p>';
+    }
     $('#sheetBody').innerHTML = html;
     $('#sheetBody').scrollTop = 0;
     setFoot('<button class="btn btn--ghost" type="button" data-close>Вернуться в меню</button>');
@@ -1020,7 +1104,7 @@
     }
     $('#sheetBody').innerHTML = receiptHtml() +
       '<button class="btn btn--ghost" type="button" data-close style="margin-top:20px">✏️ Изменить состав</button>';
-    setFoot('<button class="btn btn--split" type="button" data-evstep><span>Дата и контакты</span><span>' + fmt(evTotal()) + '</span></button>');
+    setFoot('<button class="btn btn--split" type="button" data-evstep><span>Далее<span class="lbl-x">: дата и контакты</span></span><span>' + fmt(evTotal()) + '</span></button>');
   }
 
   function openEvDetails() {
@@ -1068,7 +1152,7 @@
     body.scrollTop = scroll;
     setFoot('<p class="form-err" id="evErr" hidden style="margin-bottom:8px"></p>' +
       '<button class="btn btn--wa btn--split" type="submit" form="evOrderForm">' +
-      '<span style="display:flex;align-items:center;gap:8px">' + ICON.wa + 'Отправить заявку</span><span>' + fmt(t) + '</span></button>' +
+      '<span style="display:flex;align-items:center;gap:8px">' + ICON.wa + '<span>Отправить<span class="lbl-x"> заявку</span></span></span><span class="btn-sum">' + fmt(t) + '</span></button>' +
       '<p class="foot-hint">Откроется WhatsApp с заявкой и полным чеком — нажмите «Отправить»</p>');
     if (evTried) showErrors('#evOrderForm', '#evErr', evErrors(), 'Укажите: ', false);
   }
@@ -1138,8 +1222,8 @@
         ? '<div class="success"><h4>Ваша заявка №' + e.no + '</h4></div>' +
           sblock(1, 'Если ещё не отправили заявку', 'Откройте WhatsApp — заявка с полным чеком подставится сама, останется нажать «Отправить».',
             '<button class="linkbtn" type="button" id="resendEv">Открыть WhatsApp с заявкой</button>')
-        : '<div class="success"><div class="success-icon">' + ICON.check + '</div><h4>Почти готово!</h4></div>' +
-          sblock(1, 'Отправьте заявку в WhatsApp', 'Чат с заявкой и полным чеком уже открыт — нажмите «Отправить».',
+        : '<div class="success"><div class="success-icon success-icon--wa">' + ICON.wa + '</div><h4>Осталось отправить заявку</h4></div>' +
+          sblock(1, 'Нажмите «Отправить» в WhatsApp', 'Чат с заявкой и полным чеком уже открыт.',
             '<button class="linkbtn" type="button" id="resendEv">Чат не открылся? Открыть ещё раз</button>')) +
       sblock(2, 'Мы свяжемся с вами', 'Подтвердим меню, сумму и время.') +
       e.receipt;
@@ -1166,13 +1250,28 @@
 
   // ---------- wiring ----------
   document.addEventListener('click', function (e) {
+    var cl = e.target.closest('[data-clamp]');
+    if (cl) {
+      var ck = cl.getAttribute('data-clamp');
+      openDet[ck] = !openDet[ck];
+      cl.classList.toggle('open', !!openDet[ck]);
+      return;
+    }
     var t = e.target.closest('button, a, [data-close]');
     if (!t) return;
     var a;
     if (t.hasAttribute('data-add')) { add(t.getAttribute('data-add')); return; }
     if (t.hasAttribute('data-inc')) { a = t.getAttribute('data-inc'); setQty(a, qtyOf(a) + 1); return; }
     if (t.hasAttribute('data-dec')) { a = t.getAttribute('data-dec'); setQty(a, qtyOf(a) - 1); return; }
-    if (t.hasAttribute('data-evadd')) { setEvQty(t.getAttribute('data-evadd'), 1); bump('#evbar'); return; }
+    if (t.hasAttribute('data-evadd')) {
+      // portions: the first tap puts one per guest
+      a = t.getAttribute('data-evadd');
+      var q0 = EVI[a] && EVI[a].unit === 'порц.' && G() > 1 ? G() : 1;
+      setEvQty(a, q0);
+      bump('#evbar');
+      if (q0 > 1) toast(q0 + ' порц. — по числу гостей. Можно изменить');
+      return;
+    }
     if (t.hasAttribute('data-evinc')) { a = t.getAttribute('data-evinc'); setEvQty(a, evQty(a) + 1); return; }
     if (t.hasAttribute('data-evdec')) { a = t.getAttribute('data-evdec'); setEvQty(a, evQty(a) - 1); return; }
     if (t.hasAttribute('data-gstep')) {
@@ -1191,6 +1290,13 @@
     if (t.hasAttribute('data-tab-go')) { switchTab(t.getAttribute('data-tab-go')); return; }
     if (t.hasAttribute('data-go')) { goTo(t.getAttribute('data-go')); return; }
     if (t.hasAttribute('data-step')) { openCheckout(); return; }
+    if (t.hasAttribute('data-comment-open')) {
+      commentOpen = true;
+      renderCheckout();
+      var ta = $('#orderForm textarea[name="comment"]');
+      if (ta) ta.focus();
+      return;
+    }
     if (t.hasAttribute('data-last-open')) {
       var kind = t.getAttribute('data-last-open');
       var d = loadLast(kind);
@@ -1206,7 +1312,8 @@
     }
     if (t.hasAttribute('data-copy')) {
       var val = t.getAttribute('data-copy');
-      var done = function () { toast('Номер скопирован: ' + val); };
+      var msg = t.getAttribute('data-copy-msg') || 'Скопировано';
+      var done = function () { toast(msg + ': ' + val); };
       if (navigator.clipboard) navigator.clipboard.writeText(val).then(done, function () { toast(val); });
       else toast(val);
       return;
@@ -1276,7 +1383,9 @@
     if (sheetMode === 'checkout' && el.name in form) {
       form[el.name] = el.value;
       store.set('vk_form', form);
-      if (el.name === 'mode' || el.name === 'when') renderCheckout();
+      if (el.name === 'when') freshTime = el.value === 'time';
+      if (el.name === 'mode' || el.name === 'when' || el.name === 'pay') renderCheckout();
+      else if (el.name === 'time') updateTimeDay();
       return;
     }
     if (sheetMode === 'ev-details') {
@@ -1290,7 +1399,8 @@
     if (sheetMode === 'checkout' && el.name in form) {
       form[el.name] = el.value;
       store.set('vk_form', form);
-      if (orderTried) showErrors('#orderForm', '#orderErr', orderErrors(), 'Заполните: ', false);
+      if (el.name === 'time') updateTimeDay();
+      if (orderTried) showErrors('#orderForm', '#orderErr', shownOrderErrors(), 'Заполните: ', false);
     } else if (sheetMode === 'ev-details') {
       evField(el);
       if (evTried) showErrors('#evOrderForm', '#evErr', evErrors(), 'Укажите: ', false);

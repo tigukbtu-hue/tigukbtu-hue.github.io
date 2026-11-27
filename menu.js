@@ -52,14 +52,6 @@ window.MENU = [
     ],
   },
   {
-    id: 'sazan', title: 'Сазан', nav: 'Сазан',
-    items: [
-      { id: 'sazan-portion', name: 'Сазан, порция', note: '4 шт.', price: 2200, img: 'img/sazan.jpg' },
-      { id: 'sazan-05', name: 'Сазан 0,5 кг', note: '6–8 шт.', price: 3000, img: 'img/sazan.jpg' },
-      { id: 'sazan-1kg', name: 'Сазан 1 кг', note: '12–14 шт.', price: 6000, img: 'img/sazan.jpg' },
-    ],
-  },
-  {
     id: 'garnish', title: 'Гарниры', nav: 'Гарниры',
     items: [
       { id: 'pure', name: 'Пюре', price: 500, emoji: '🥔' },
@@ -85,6 +77,16 @@ window.MENU = [
       { id: 'samsa-cheese', name: 'Самса с сыром', price: 350, img: 'img/samsa1.jpg', fit: 'contain' },
       { id: 'cheburek', name: 'Чебурек', price: 200, emoji: '🥟' },
       { id: 'bauyrsak', name: 'Бауырсаки', note: '1 кг', price: 2300, img: 'img/buns.jpg', fit: 'contain', preorder: true },
+    ],
+  },
+  {
+    id: 'trays', title: 'Наборы к столу', nav: 'Наборы',
+    items: [
+      { id: 'tray-cheburek', name: 'Чебуреки', note: 'набор', price: 4500, emoji: '🥟' },
+      { id: 'tray-bliny', name: 'Блины', note: 'набор', price: 4500, emoji: '🥞' },
+      { id: 'tray-tvorog', name: 'Пирог творожный', note: 'набор', price: 4500, emoji: '🥧' },
+      { id: 'tray-brownie', name: 'Брауни', note: 'набор', price: 4500, emoji: '🍫' },
+      { id: 'tray-mak', name: 'Пирог маковый', note: 'набор', price: 4500, emoji: '🥧' },
     ],
   },
   {
@@ -146,10 +148,6 @@ window.SETS = [
     items: [['shashlik-lamb', 4], ['lulya', 4], ['shashlik-chicken', 2], ['achuchuk', 2], ['fri', 2]],
   },
   {
-    id: 'sazan', title: 'Сазан для семьи', serves: 'на 3–4 человек', image: 'img/sazan.jpg', discount: 0.10,
-    items: [['sazan-1kg', 1], ['fri', 2], ['salad-fresh', 2], ['kompot', 2]],
-  },
-  {
     id: 'tea', title: 'К чаю для гостей', serves: 'на 6–8 человек', image: 'img/desserts.jpg', imageFit: 'contain', discount: 0.10,
     items: [['bauyrsak', 1], ['samsa-meat', 6], ['brownie', 2], ['tvorozhny', 2], ['tea-black', 6]],
   },
@@ -181,13 +179,11 @@ window.EVENT_MENU = [
     ],
   },
   {
-    id: 'grill', title: 'Шашлык и сазан', nav: '🍢 Шашлык, сазан',
+    id: 'grill', title: 'Шашлык', nav: '🍢 Шашлык',
     items: [
       { id: 'shashlik-lamb', unit: 'порц.' },
       { id: 'shashlik-chicken', unit: 'порц.' },
       { id: 'lulya', unit: 'порц.' },
-      { id: 'sazan-1kg', name: 'Сазан жареный', unit: 'кг', note: '12–14 шт. в 1 кг' },
-      { id: 'sazan-portion', unit: 'порц.' },
     ],
   },
   {
@@ -221,6 +217,8 @@ window.EVENT_MENU = [
       { id: 'samsa-cheese', unit: 'шт.' },
       { id: 'cheburek', unit: 'шт.' },
       { id: 'bauyrsak', unit: 'кг', note: '' },
+      { id: 'tray-cheburek', name: 'Чебуреки — набор', unit: 'шт.', note: '' },
+      { id: 'tray-bliny', name: 'Блины — набор', unit: 'шт.', note: '' },
     ],
   },
   {
@@ -233,6 +231,9 @@ window.EVENT_MENU = [
       { id: 'tvorozhny', name: 'Творожный торт, кусок', unit: 'шт.', note: '' },
       { id: 'banoffee', name: 'Баноффи пай, кусок', unit: 'шт.', note: '' },
       { id: 'brownie', unit: 'шт.' },
+      { id: 'tray-tvorog', name: 'Пирог творожный — набор', unit: 'шт.', note: '' },
+      { id: 'tray-brownie', name: 'Брауни — набор', unit: 'шт.', note: '' },
+      { id: 'tray-mak', name: 'Пирог маковый — набор', unit: 'шт.', note: '' },
     ],
   },
   {
