@@ -515,7 +515,7 @@
       var armed = armedSet === sg;
       var taken = !armed && isTaken(sg);
       var to = setTargetFor(sg);
-      b.textContent = armed ? 'Заменить мой выбор?' : taken ? '✓ Стол в чеке' : (to !== sg ? 'Взять на ' + to + ' ' + guestsWord(to) : 'Взять этот стол');
+      b.textContent = armed ? 'Заменить мой выбор?' : taken ? (to !== sg ? '✓ В чеке на ' + to + ' ' + guestsWord(to) : '✓ Стол в чеке') : (to !== sg ? 'Взять на ' + to + ' ' + guestsWord(to) : 'Взять этот стол');
       b.classList.toggle('btn--gold', armed);
       b.classList.toggle('btn--done', taken);
     });
@@ -739,7 +739,7 @@
       var x = resolve(r.key);
       return '<div class="ci"><div class="thumb">' + x.thumb + '</div>' +
         '<div><div class="ci-name">' + esc(x.name) + '</div>' +
-        (x.details ? '<div class="ci-det">' + esc(x.details) + '</div>' : '') +
+        ((x.details || x.preorder) ? '<div class="ci-det">' + esc([x.details, x.preorder && r.key.indexOf('i:') === 0 ? 'на заказ' : ''].filter(Boolean).join(' · ')) + '</div>' : '') +
         '<div class="ci-price">' + fmt(x.price * r.qty) + '</div></div>' +
         '<div data-ctrl="' + esc(r.key) + '" data-v="sm">' + ctrlHtml(r.key, 'sm') + '</div></div>';
     }).join('');
@@ -826,7 +826,8 @@
       '</div></div>' +
       '<div class="block"><h4 class="block-title">Когда</h4>' +
       seg('when', form.when, [['asap', '⚡ Как можно скорее'], ['time', '🕐 Ко времени']]) +
-      (form.when === 'time' ? '<div style="margin-top:12px">' + field('time', 'Время', 'type="time"', form.time) + '</div>' : '') +
+      (form.when === 'time' ? '<div style="margin-top:12px">' + field('time', 'Время', 'type="time"', form.time) +
+        '<p class="sum-note">Если это время сегодня уже прошло, заказ будет на завтра — напишем в сообщении.</p></div>' : '') +
       '</div>' +
       '<div class="block"><h4 class="block-title">Получатель</h4><div class="row2">' +
       field('name', 'Имя', 'autocomplete="given-name" placeholder="Ваше имя"', form.name) +
@@ -856,6 +857,11 @@
     if (!w) window.location.href = url;
   }
   var orderNumber = function () { return String(Date.now()).slice(-4); };
+  function dayFor(time) {
+    var d = new Date();
+    var now = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+    return time && time <= now ? 'завтра' : 'сегодня';
+  }
 
   // ---------- validation ----------
   function orderErrors() {
@@ -900,7 +906,7 @@
     });
     lines.push('', '*Итого: ' + fmt(total()) + '*' + (form.mode === 'delivery' ? ' + доставка' : ''), '');
     lines.push(form.mode === 'delivery' ? '🚚 Доставка: ' + form.address + (form.entrance ? ', ' + form.entrance : '') : '🏪 Самовывоз');
-    lines.push('⏰ ' + (form.when === 'time' ? 'Ко времени: ' + form.time : 'Как можно скорее'));
+    lines.push('⏰ ' + (form.when === 'time' ? 'Ко времени: ' + dayFor(form.time) + ', ' + form.time : 'Как можно скорее'));
     lines.push('👤 ' + form.name + ', ' + form.phone);
     lines.push(form.pay === 'kaspi' ? '💳 Оплата: перевод Kaspi — чек пришлю в этот чат' : '💵 Оплата: наличными при получении');
     if (form.comment) lines.push('💬 ' + form.comment);
@@ -994,7 +1000,7 @@
       '</div>' + body +
       (svc ? '<div class="rc-sep"></div><div class="rc-cat">Услуги</div>' + svc : '') +
       '<div class="rc-sep"></div>' +
-      '<div class="rc-total"><span>Итого</span><span>' + fmt(t) + '</span></div>' +
+      '<div class="rc-total"><span>Итого по меню</span><span>' + fmt(t) + '</span></div>' +
       '<div class="rc-per">' + lines.length + ' ' + posWord(lines.length) + (g ? ' · ≈ ' + fmt(Math.round(t / g)) + ' на гостя' : '') + '</div>' +
       '<div class="rc-foot">Окончательную сумму подтвердим в WhatsApp</div>' +
       '</div></div>';
@@ -1056,7 +1062,7 @@
       EVENT_SERVICES.filter(function (s) { return evForm.svc[s.id]; }).map(function (s) {
         return '<div class="sum-row"><span>' + esc(s.title) + '</span><span>' + esc(s.price || '') + '</span></div>';
       }).join('') +
-      '<div class="sum-row sum-row--total"><span>Итого</span><span>' + fmt(t) + '</span></div>' +
+      '<div class="sum-row sum-row--total"><span>Итого по меню</span><span>' + fmt(t) + '</span></div>' +
       '<div class="rc-per" id="evPer">' + (g ? '≈ ' + fmt(Math.round(t / g)) + ' на гостя' : '') + '</div>' +
       '</div></form>';
     body.scrollTop = scroll;
