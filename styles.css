@@ -1111,3 +1111,8 @@ body { font-weight: 500; line-height: 1.4; }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* ---------- Round 13: Kaspi number before WhatsApp ---------- */
+.kaspi-pre { margin-top: 10px; border: 1.5px solid var(--line); }
+.kaspi-pre .kc-val { font-size: 22px; letter-spacing: .01em; }
+.kaspi-pre .kc-label + .kc-val + .kc-label { margin-top: 2px; color: var(--ink); }

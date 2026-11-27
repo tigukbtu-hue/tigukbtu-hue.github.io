@@ -1042,15 +1042,23 @@
       (C.kaspiLogo ? '<span class="kaspi-ic"><img src="' + esc(C.kaspiLogo) + '" alt="" onerror="this.parentNode.remove()"></span>' : '') +
       '<b class="kaspi-word">Kaspi.kz</b></span>';
     var note = '<p class="kaspi-pill-note">' + (form.mode === 'delivery'
-      ? 'Переведите одним платежом, когда напишем итог с доставкой, и отправьте чек в WhatsApp'
-      : 'Переведите и отправьте чек в WhatsApp') + '</p>';
+      ? 'Переведите одним платежом, когда напишем итог с доставкой. Номер Kaspi будет и в сообщении WhatsApp — чек отправьте туда'
+      : 'Номер Kaspi будет и в сообщении WhatsApp — переведите и отправьте чек туда') + '</p>';
     var kaspi = form.mode === 'delivery'
       ? '<div class="paybtn paybtn--pill">' + pill + note + '</div>'
       : '<label class="paybtn paybtn--pill"><input type="radio" name="pay" value="kaspi"' + (form.pay === 'kaspi' ? ' checked' : '') + '>' + pill + note + '</label>';
     var cash = form.mode === 'pickup'
       ? opt('pay', 'cash', form.pay === 'cash', '<span class="opt-ic">' + ICON.cash + '</span>', 'Наличными', 'При получении заказа')
       : '';
-    return '<div class="opt-list">' + kaspi + cash + '</div>';
+    // the Kaspi number right on the page, before WhatsApp opens
+    var showNum = C.kaspiPhone && (form.mode === 'delivery' || form.pay === 'kaspi');
+    var num = showNum
+      ? '<div class="kaspi-card kaspi-pre"><div class="kc-row"><span class="kc-text"><span class="kc-label">Номер Kaspi для перевода</span>' +
+        '<span class="kc-val">' + esc(C.kaspiPhone) + '</span>' +
+        (C.kaspiName ? '<span class="kc-label">При переводе высветится: ' + esc(C.kaspiName) + '</span>' : '') +
+        '</span><button type="button" class="kc-copy" data-copy="' + esc(C.kaspiPhone) + '" data-copy-msg="Номер скопирован" aria-label="Скопировать номер Kaspi">' + ICON.copy + '</button></div></div>'
+      : '';
+    return '<div class="opt-list">' + kaspi + num + cash + '</div>';
   }
   function thumbsRow(list) {
     var shown = list.slice(0, 12);
@@ -1184,6 +1192,19 @@
     }
   }
 
+  // ---------- payment how-to inside the WhatsApp message ----------
+  // People rarely come back to the site after WhatsApp, so the message itself
+  // carries the Kaspi number, the name shown on transfer and the request for a check.
+  function kaspiPayLines(sumText, after) {
+    var l = ['💳 *Оплата — перевод Kaspi*'];
+    if (C.kaspiPhone) l.push('Номер Kaspi: ' + C.kaspiPhone);
+    if (C.kaspiName) l.push('При переводе высветится: ' + C.kaspiName);
+    l.push('Сумма: ' + sumText);
+    if (after) l.push(after);
+    l.push('📎 После перевода пришлите чек (скриншот) в этот чат.');
+    return l;
+  }
+
   // ---------- regular order ----------
   function buildOrderText(no) {
     var deliv = form.mode === 'delivery';
@@ -1206,14 +1227,10 @@
     lines.push('👤 ' + form.name + (digits(form.phone) ? ', ' + form.phone : ''));
     if (form.comment) lines.push('💬 ' + form.comment);
     lines.push('');
-    if (form.pay === 'kaspi' && deliv) {
-      lines.push('💳 *Оплата Kaspi:* ' + fmt(total()) + ' + доставка');
-      if (C.kaspiPhone) lines.push('Номер Kaspi: ' + C.kaspiPhone);
-      lines.push('Напишите итог с доставкой — переведу одним платежом и пришлю чек сюда.');
-    } else if (form.pay === 'kaspi') {
-      lines.push('💳 *Оплата Kaspi:* ' + fmt(total()));
-      if (C.kaspiPhone) lines.push('Номер Kaspi: ' + C.kaspiPhone);
-      lines.push('Переведу и пришлю чек в этот чат.');
+    if (form.pay === 'kaspi') {
+      lines = lines.concat(deliv
+        ? kaspiPayLines(fmt(total()) + ' + доставка', 'Итог с доставкой напишем в ответ — переведите одним платежом.')
+        : kaspiPayLines(fmt(total())));
     } else {
       lines.push('💵 Оплата: наличными при получении');
     }
@@ -1443,6 +1460,8 @@
     lines.push(evLines().length + ' ' + posWord(evLines().length) + (g ? ' · ≈ ' + fmt(Math.round(t / g)) + ' на гостя' : ''));
     lines.push('', '👤 ' + form.name + (digits(form.phone) ? ', ' + form.phone : ''));
     if (evForm.comment) lines.push('💬 ' + evForm.comment);
+    lines.push('');
+    lines = lines.concat(kaspiPayLines(fmt(t) + ' по меню', 'Сначала подтвердим заявку и напишем сумму предоплаты.'));
     return lines.join('\n');
   }
 
