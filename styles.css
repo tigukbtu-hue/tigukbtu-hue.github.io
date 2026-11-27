@@ -1053,6 +1053,45 @@ body { font-weight: 500; line-height: 1.4; }
 .wa-badge { flex: none; width: 32px; height: 32px; border-radius: 50%; background: #fff; color: var(--wa); display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0, 0, 0, .15); }
 .wa-badge svg { width: 21px; height: 21px; }
 
+/* ---------- Round 11: lighter outlines, Kaspi pill, cart ---------- */
+/* fewer shadows and heavy frames: thin light lines */
+.card, .mlist, .setcard, .tset, .review { box-shadow: none; border: 1px solid var(--line); }
+.card--hl { box-shadow: none; border: 1.5px solid var(--gold); }
+.sheet-body .block { background: #fff; box-shadow: none; border: 1.5px dashed #e3d8c6; border-radius: 26px; padding: 16px 18px; }
+.opt > span { background: #fff; border: 1.5px solid var(--line); border-radius: 18px; }
+.opt input:checked + span { border-color: var(--red); background: #fffaf8; }
+.seg { background: #f6f1ea; }
+.field input, .field select, .field textarea { box-shadow: none; }
+
+/* Kaspi: a big pill like in delivery apps */
+.paybtn--pill { display: block; position: relative; }
+.paybtn--pill input { position: absolute; opacity: 0; inset: 0; }
+.kaspi-pill { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 58px; padding: 8px 20px; border-radius: 999px;
+  background: var(--kaspi-d); color: #fff; font-size: 18px; font-weight: 700; }
+.kaspi-pill .kaspi-ic { width: 32px; height: 32px; box-shadow: 0 0 0 2px #fff; }
+.kaspi-pill .kaspi-word { font-size: 21px; color: #fff; }
+.paybtn--pill input:not(:checked) + .kaspi-pill { background: #fdecea; color: var(--kaspi-d); }
+.paybtn--pill input:not(:checked) + .kaspi-pill .kaspi-word { color: var(--kaspi-d); }
+.paybtn--pill input:focus-visible + .kaspi-pill { outline: 3px solid var(--gold); outline-offset: 2px; }
+.kaspi-pill-note { margin: 8px 6px 0; text-align: center; font-size: 13px; font-weight: 600; color: var(--muted); line-height: 1.35; }
+
+/* cart: each dish in its own light card */
+.ci-list { display: grid; gap: 10px; }
+.ci { background: #fff; border: 1px solid var(--line); border-radius: 26px; padding: 12px; grid-template-columns: 84px minmax(0, 1fr); gap: 14px; }
+.ci + .ci { border-top: 1px solid var(--line); }
+.ci .thumb { width: 84px; height: 84px; border-radius: 20px; }
+.ci-name { font-size: 16px; font-weight: 700; }
+.ci-price { font-size: 17px; font-weight: 800; }
+.ci .stepper--sm { background: #fff; border: 1.5px solid var(--line); border-radius: 999px; width: 116px; }
+.ci .stepper--sm button { color: var(--ink); }
+.clear-btn { display: inline-flex; align-items: center; gap: 6px; }
+.sum-solo { background: #fff; box-shadow: none; border: 1.5px dashed #e3d8c6; border-radius: 26px; }
+.mini { box-shadow: none; border: 1px solid var(--line); }
+@media (max-width: 350px) {
+  .ci { grid-template-columns: 64px minmax(0, 1fr); }
+  .ci .thumb { width: 64px; height: 64px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }

@@ -75,6 +75,7 @@
     info: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>',
     table: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 6c1.11 0 2-.9 2-2 0-.38-.1-.73-.29-1.03L12 0l-1.71 2.97c-.19.3-.29.65-.29 1.03 0 1.1.9 2 2 2zm4.6 9.99-1.07-1.07-1.08 1.07c-1.3 1.3-3.58 1.31-4.89 0l-1.07-1.07-1.09 1.07C6.75 16.64 5.88 17 4.96 17c-.73 0-1.4-.23-1.96-.61V21c0 .55.45 1 1 1h16c.55 0 1-.45 1-1v-4.61c-.56.38-1.23.61-1.96.61-.92 0-1.79-.36-2.44-1.01zM18 9h-5V7h-2v2H6c-1.66 0-3 1.34-3 3v1.54c0 1.08.88 1.96 1.96 1.96.52 0 1.02-.2 1.38-.57l2.14-2.13 2.13 2.13c.74.74 2.03.74 2.77 0l2.14-2.13 2.13 2.13c.37.37.86.57 1.38.57 1.08 0 1.96-.88 1.96-1.96V12C21 10.34 19.66 9 18 9z"/></svg>',
   };
+  ICON.trash = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h4v2H4V5h4l1-2zm-3 6h12l-1 12H7L6 9zm4 2v8h2v-8h-2zm4 0v8h2v-8h-2z"/></svg>';
   var SVC_ICON = { serve: ICON.serve, delivery: ICON.truck, pickup: ICON.bag };
 
   // Kaspi: red round icon + the word «Kaspi»
@@ -130,13 +131,13 @@
         }).join(', '),
         price: setPrice(s).price,
         preorder: s.items.some(function (x) { return ITEMS[x[0]] && ITEMS[x[0]].preorder; }),
-        thumb: '<img src="' + esc(s.image) + '" alt="" loading="lazy">',
+        thumb: s.image ? '<img src="' + esc(s.image) + '" alt="" loading="lazy">' : emoTile({ section: 'second', emoji: '🍲' }),
       };
     }
     if (p[0] === 'c' && COMBO && p.length === 4 && ITEMS[p[1]] && ITEMS[p[2]] && ITEMS[p[3]]) {
       return {
         name: COMBO.title, details: [itemName(p[1]), itemName(p[2]), itemName(p[3])].join(' + '),
-        price: COMBO.price, thumb: '<img src="' + esc(COMBO.image) + '" alt="" loading="lazy">',
+        price: COMBO.price, thumb: COMBO.image ? '<img src="' + esc(COMBO.image) + '" alt="" loading="lazy">' : emoTile({ section: 'first', emoji: '🍲' }),
       };
     }
     return null;
@@ -963,7 +964,7 @@
 
   function renderCart() {
     var body = $('#sheetBody');
-    $('#sheetExtra').innerHTML = cart.length ? '<button type="button" data-clear>' + (clearArmed ? 'Точно очистить?' : 'Очистить') + '</button>' : '';
+    $('#sheetExtra').innerHTML = cart.length ? '<button type="button" class="clear-btn" data-clear>' + ICON.trash + (clearArmed ? 'Точно очистить?' : 'Очистить') + '</button>' : '';
     if (!cart.length) {
       body.innerHTML = '<div class="empty"><div class="empty-ic">🛒</div>В корзине пока пусто<br>Добавьте что-нибудь вкусное</div>';
       setFoot('<button class="btn btn--ghost" type="button" data-close>Перейти в меню</button>');
@@ -991,7 +992,7 @@
     }).join('');
 
     body.innerHTML =
-      '<div class="block">' + rows + '</div>' +
+      '<div class="ci-list">' + rows + '</div>' +
       (hasPre ? '<p class="note"><span class="note-ic">' + ICON.clock + '</span><span>В заказе есть позиции <b>на заказ</b> — уточним время готовности в WhatsApp.</span></p>' : '') +
       (ups ? '<h4 class="upsell-title">Добавить к заказу?</h4><div class="hscroll upsell">' + ups + '</div>' : '') +
       '<div class="block sum-solo"><div class="sum-row sum-row--total"><span>Итого, ' + n + ' шт.</span><span>' + fmt(t) + '</span></div></div>';
@@ -1031,13 +1032,15 @@
   }
   function payHtml() {
     // delivery has only Kaspi: no checkmark, just how it works
+    var pill = '<span class="kaspi-pill"><span>Перевод на</span>' +
+      (C.kaspiLogo ? '<span class="kaspi-ic"><img src="' + esc(C.kaspiLogo) + '" alt="" onerror="this.parentNode.remove()"></span>' : '') +
+      '<b class="kaspi-word">Kaspi.kz</b></span>';
+    var note = '<p class="kaspi-pill-note">' + (form.mode === 'delivery'
+      ? 'Переведите одним платежом, когда напишем итог с доставкой, и отправьте чек в WhatsApp'
+      : 'Переведите и отправьте чек в WhatsApp') + '</p>';
     var kaspi = form.mode === 'delivery'
-      ? '<div class="paybtn paybtn--only"><span class="paybtn-box">' + kaspiMark() +
-        '<span class="paybtn-text">Перевод<small>одним платежом после итога с доставкой</small></span></span></div>'
-      : '<label class="paybtn"><input type="radio" name="pay" value="kaspi"' + (form.pay === 'kaspi' ? ' checked' : '') + '>' +
-        '<span class="paybtn-box">' + kaspiMark() +
-        '<span class="paybtn-text">Перевод</span>' +
-        '<span class="paybtn-check" aria-hidden="true"></span></span></label>';
+      ? '<div class="paybtn paybtn--pill">' + pill + note + '</div>'
+      : '<label class="paybtn paybtn--pill"><input type="radio" name="pay" value="kaspi"' + (form.pay === 'kaspi' ? ' checked' : '') + '>' + pill + note + '</label>';
     var cash = form.mode === 'pickup'
       ? opt('pay', 'cash', form.pay === 'cash', '<span class="opt-ic">' + ICON.cash + '</span>', 'Наличными', 'При получении заказа')
       : '';
