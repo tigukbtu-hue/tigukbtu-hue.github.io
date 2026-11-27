@@ -350,6 +350,15 @@
     return SETS.reduce(function (m, s) { var p = setPrice(s); return Math.max(m, p.sum - p.price); }, 0);
   }
 
+  function evTopHtml() {
+    var gs = EVENT_SETS.map(function (s) { return s.guests; });
+    var range = gs.length ? gs[0] + '–' + gs[gs.length - 1] + ' гостей' : '';
+    return '<section class="evtop"><button class="evtop-card" type="button" data-tab-go="events">' +
+      '<span class="evtop-img"><img src="' + esc(PH('table')) + '" alt=""><span class="evtop-kicker">Той · Ас · День рождения</span></span>' +
+      '<span class="evtop-body"><b class="evtop-title">Накроем стол для гостей</b>' +
+      '<small>' + (range ? 'Готовые столы на ' + range + ' или соберите свой' : 'Соберите стол из наших блюд') + ' — сразу увидите полный чек</small>' +
+      '<span class="evtop-cta">Собрать стол <span aria-hidden="true">→</span></span></span></button></section>';
+  }
   function evPromoHtml() {
     return '<section class="sec"><button class="evpromo" type="button" data-tab-go="events">' +
       '<img src="' + esc(PH('table')) + '" alt="">' +
@@ -418,9 +427,9 @@
 
   function renderMenu() {
     var hasSecond = MENU.some(function (s) { return s.id === 'second'; });
-    $('#menu').innerHTML = setsHtml() + MENU.map(function (sec) {
-      return sectionHtml(sec) + (sec.id === 'second' ? comboHtml() + evPromoHtml() : '');
-    }).join('') + (hasSecond ? '' : comboHtml() + evPromoHtml());
+    $('#menu').innerHTML = evTopHtml() + setsHtml() + MENU.map(function (sec) {
+      return sectionHtml(sec) + (sec.id === 'second' ? comboHtml() : '');
+    }).join('') + (hasSecond ? '' : comboHtml()) + evPromoHtml();
   }
 
   function menuNavLinks() {
