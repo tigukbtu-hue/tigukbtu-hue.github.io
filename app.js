@@ -214,6 +214,7 @@
   var evTried = false;
   var freshTime = false;
   var commentOpen = false;
+  var evCommentOpen = false;
   var openDet = {};
 
   // ---------- last order / request (survives a reload while the customer is in WhatsApp) ----------
@@ -251,7 +252,7 @@
       var thumbs = '<span class="last-thumbs">' + rp.cart.slice(0, 3).map(function (r) { return '<span>' + resolve(r.key).thumb + '</span>'; }).join('') + '</span>';
       rows.push(bannerRow('repeat', thumbs, 'Повторить заказ', rp.cart.length + ' ' + posWord(rp.cart.length) + ' · ' + fmt(rp.total), 'repeat'));
     }
-    if (e) rows.push(bannerRow('event', ICON.table, 'Заявка на стол №' + e.no, 'Чек стола и WhatsApp'));
+    if (e) rows.push(bannerRow('event', ICON.table, 'Заявка на стол №' + e.no, 'Открыть заявку'));
     el.innerHTML = rows.join('');
     el.hidden = !rows.length;
   }
@@ -383,7 +384,7 @@
         '<span class="price-new">' + fmt(p.price) + '</span></div>' + ctrl('s:' + s.id, 'sm') + '</div></div></article>';
     }).join('');
     return '<section class="sec" id="sec-sets">' + secHead('Сеты') +
-      '<p class="sec-lead">Готовые наборы для семьи и компании — выгоднее, чем по отдельности</p>' +
+
       '<div class="hscroll">' + cards + '</div></section>';
   }
 
@@ -429,7 +430,7 @@
     var hasSecond = MENU.some(function (s) { return s.id === 'second'; });
     $('#menu').innerHTML = evTopHtml() + setsHtml() + MENU.map(function (sec) {
       return sectionHtml(sec) + (sec.id === 'second' ? comboHtml() : '');
-    }).join('') + (hasSecond ? '' : comboHtml()) + evPromoHtml();
+    }).join('') + (hasSecond ? '' : comboHtml());
   }
 
   function menuNavLinks() {
@@ -509,7 +510,7 @@
     }).join('');
     var hero = '<section class="sec ev-hero" id="evs-guests">' +
       '<h2 class="ev-title">Накроем стол</h2>' +
-      '<p class="ev-lead">Возьмите готовый стол или соберите свой из блюд — сразу увидите полный чек.</p>' +
+
       '<div class="ev-guests"><div class="ev-guests-title">Сколько гостей?</div>' +
       '<div class="guests"><button type="button" class="g-btn" data-gstep="-1" aria-label="Меньше гостей">−</button>' +
       '<label class="g-val"><input id="evGuests" type="number" inputmode="numeric" min="1" max="2000" placeholder="—" value="' + (G() || '') + '" aria-label="Количество гостей">' +
@@ -517,16 +518,14 @@
       '<button type="button" class="g-btn" data-gstep="1" aria-label="Больше гостей">+</button></div>' +
       '<div class="gq-row">' + quick + '</div>' +
       '<button type="button" class="rescale" id="evRescale" data-rescale hidden></button></div>' +
-      '<div class="ev-occ"><span class="ev-occ-label">Ваш повод:</span><div class="ev-chips" id="occChips">' + occChipsHtml() + '</div></div>' +
-      '<div class="ev-photos"><img src="' + esc(PH('table')) + '" alt="Накрытый стол"><img src="' + esc(PH('medovik')) + '" alt="Медовый торт"><img src="' + esc(PH('bauyrsak')) + '" alt="Бауырсаки"></div>' +
+
       '</section>';
 
     var sets = EVENT_SETS.length ? '<section class="sec" id="evs-sets">' + secHead('Готовые столы') +
       '<p class="sec-lead" id="tsetHint"></p>' +
       '<div class="hscroll" id="tsetRow">' + EVENT_SETS.map(tableSetCard).join('') + '</div></section>' : '';
 
-    var intro = '<div class="pad" id="evs-build"><div class="build-intro"><span class="build-ic">' + ICON.edit + '</span><span><b>Соберите свой стол</b>' +
-      'Выберите блюда ниже и укажите количество — сумма посчитается сама.</span></div></div>';
+    var intro = '<div class="pad" id="evs-build"><h3 class="build-title">Или соберите стол сами</h3></div>';
 
     var cats = EVCATS.map(function (cat) {
       return '<section class="sec" id="evs-' + esc(cat.id) + '">' +
@@ -534,13 +533,7 @@
         '<div class="pad"><div class="block evlist">' + cat.items.map(evRow).join('') + '</div></div></section>';
     }).join('');
 
-    var svc = EVENT_SERVICES.length ? '<section class="sec" id="evs-services">' + secHead('Как доставить') +
-      '<div class="pad"><div class="opt-list">' + EVENT_SERVICES.map(svcOpt).join('') + '</div></div></section>' : '';
-
-    var help = '<div class="pad" style="margin-top:16px"><p class="note"><span class="note-ic">' + ICON.wa + '</span><span>Не знаете, что выбрать? ' +
-      '<button type="button" class="inline-link" data-ev-help>Напишите нам в WhatsApp</button> — подскажем.</span></p></div>';
-
-    $('#view-events').innerHTML = hero + sets + intro + cats + svc + help;
+    $('#view-events').innerHTML = hero + sets + intro + cats;
     markMatchingSet(false);
     updateEvCounts();
     updateRescale();
@@ -550,7 +543,6 @@
     var links = [['evs-guests', 'Гости']];
     if (EVENT_SETS.length) links.push(['evs-sets', 'Готовые столы']);
     EVCATS.forEach(function (c) { links.push(['evs-' + c.id, c.nav]); });
-    if (EVENT_SERVICES.length) links.push(['evs-services', 'Доставка']);
     return links;
   }
 
@@ -657,9 +649,9 @@
     });
     var hint = $('#tsetHint');
     if (hint) {
-      if (!m) hint.textContent = 'Возьмите готовый стол и поменяйте, что нужно, — или соберите свой из блюд ниже.';
-      else if (exact) hint.textContent = 'Для ' + g + ' ' + guestsWord(g) + ' есть готовый стол. Можно взять его и поменять, что нужно, — или собрать свой ниже.';
-      else hint.textContent = 'Для ' + g + ' ' + guestsWord(g) + ' возьмите стол на ' + m.guests + ' — пересчитаем количество на ваших гостей. Или соберите свой стол ниже.';
+      if (!m) hint.textContent = 'Возьмите готовый стол — количество можно поменять.';
+      else if (exact) hint.textContent = 'Готовый стол на ' + g + ' ' + guestsWord(g) + ' — количество можно поменять.';
+      else hint.textContent = 'Стол на ' + m.guests + ' пересчитан на ' + g + ' ' + guestsWord(g) + '.';
     }
     renderSetButtons();
   }
@@ -685,7 +677,7 @@
   function takeSet(sg) {
     var s = EVENT_SETS.filter(function (x) { return x.guests === sg; })[0];
     if (!s) return;
-    if (isTaken(sg)) { toast('Этот стол уже в чеке — откройте «Чек стола» внизу'); return; }
+    if (isTaken(sg)) { toast('Этот стол уже выбран — нажмите «Ваш стол» внизу'); return; }
     if (evLines().length && armedSet !== sg) {
       armedSet = sg;
       renderSetButtons();
@@ -928,10 +920,7 @@
       '<div class="block">' + rows + '</div>' +
       (hasPre ? '<p class="note"><span class="note-ic">' + ICON.clock + '</span><span>В заказе есть позиции <b>на заказ</b> — уточним время готовности в WhatsApp.</span></p>' : '') +
       (ups ? '<h4 class="upsell-title">Добавить к заказу?</h4><div class="hscroll upsell">' + ups + '</div>' : '') +
-      '<div class="block" style="margin-top:12px">' +
-      '<div class="sum-row"><span>Товары, ' + n + ' шт.</span><span>' + fmt(t) + '</span></div>' +
-      '<div class="sum-row sum-row--total"><span>Итого</span><span>' + fmt(t) + '</span></div>' +
-      '<p class="sum-note">Доставку или самовывоз выберете на следующем шаге</p></div>';
+      '<div class="block sum-solo"><div class="sum-row sum-row--total"><span>Итого, ' + n + ' шт.</span><span>' + fmt(t) + '</span></div></div>';
     $$('[data-ctrl]', body).forEach(function (el) { el.innerHTML = ctrlHtml(el.getAttribute('data-ctrl'), el.getAttribute('data-v')); });
     body.scrollTop = scroll;
     setFoot('<button class="btn btn--split" type="button" data-step="checkout"><span>Оформить заказ</span><span>' + fmt(t) + '</span></button>');
@@ -977,7 +966,7 @@
         '<span class="paybtn-check" aria-hidden="true"></span></span></label>';
     var cash = form.mode === 'pickup'
       ? opt('pay', 'cash', form.pay === 'cash', '<span class="opt-ic">' + ICON.cash + '</span>', 'Наличными', 'При получении заказа')
-      : '<p class="pay-note">Наличными можно оплатить только при самовывозе</p>';
+      : '';
     return '<div class="opt-list">' + kaspi + cash + '</div>';
   }
   function thumbsRow(list) {
@@ -1012,7 +1001,7 @@
       (form.mode === 'delivery'
         ? field('address', 'Адрес доставки', 'autocomplete="street-address" placeholder="Улица, дом, квартира или офис"', form.address) +
           field('entrance', 'Подъезд, этаж, ориентир', 'placeholder="Необязательно"', form.entrance) +
-          '<p class="note"><span class="note-ic">' + ICON.truck + '</span><span>' + esc(C.deliveryNote || '') + '</span></p>' +
+
           (!minOk ? '<p class="form-err">Минимальная сумма для доставки — ' + fmt(C.minOrderDelivery) + '</p>' : '')
         : '<div class="place"><span class="place-ic">' + ICON.pin + '</span><span><b>' + esc(C.address || '') + '</b>' +
           '<small>' + esc(C.hours || 'Заберите заказ, когда мы напишем, что он готов') + '</small></span></div>') +
@@ -1039,7 +1028,6 @@
           field('comment', '', 'placeholder="Например: без лука, приборы на 3 человек" aria-label="Комментарий к заказу"', form.comment, 'textarea') + '</div>'
         : '<button type="button" class="addlink" data-comment-open>+ Добавить комментарий</button>') +
       '<div class="block"><h4 class="block-title">Ваш заказ</h4>' + thumbs +
-      '<div class="sum-row"><span>Товары, ' + n + ' шт.</span><span>' + fmt(t) + '</span></div>' +
       '<div class="sum-row"><span>Доставка</span><span>' + (form.mode === 'delivery' ? 'по тарифу Яндекса' : 'самовывоз, бесплатно') + '</span></div>' +
       '<div class="sum-row sum-row--total"><span>Итого</span><span>' + fmt(t) + (form.mode === 'delivery' ? ' + доставка' : '') + '</span></div>' +
       '</div></form>';
@@ -1048,11 +1036,7 @@
       '<button class="btn btn--wa btn--split" type="submit" form="orderForm"' + (minOk ? '' : ' disabled') + '>' +
       '<span style="display:flex;align-items:center;gap:8px">' + ICON.wa + '<span>Отправить<span class="lbl-x"> заказ</span></span></span>' +
       '<span class="btn-sum">' + fmt(t) + (form.mode === 'delivery' ? '<small>+ доставка</small>' : '') + '</span></button>' +
-      '<p class="foot-hint">' + (form.pay === 'kaspi' && C.kaspiPhone
-        ? (form.mode === 'delivery'
-          ? 'Нажмите «Отправить» в WhatsApp. Оплатите, когда напишем итог с доставкой'
-          : 'Нажмите «Отправить» в WhatsApp — номер Kaspi и сумма будут в сообщении')
-        : 'Откроется WhatsApp с готовым сообщением — нажмите «Отправить»') + '</p>');
+      '<p class="foot-hint">Откроется WhatsApp — нажмите «Отправить»</p>');
     if (orderTried) showErrors('#orderForm', '#orderErr', shownOrderErrors(), 'Заполните: ', false);
   }
 
@@ -1289,7 +1273,8 @@
 
   function openEvDetails() {
     evTried = false;
-    openSheet('ev-details', { title: 'Детали мероприятия', full: true, back: true });
+    evCommentOpen = false;
+    openSheet('ev-details', { title: 'Оформление стола', full: true });
     renderEvDetails();
     $('#sheetBody').scrollTop = 0;
   }
@@ -1299,32 +1284,34 @@
     var scroll = body.scrollTop;
     var t = evTotal(), lines = evLines(), g = G();
     var thumbs = thumbsRow(lines.map(function (it) { return { thumb: media(it), qty: evQty(it.id) }; }));
+    // the same blocks, in the same order, as the regular checkout
     body.innerHTML = '<form id="evOrderForm" class="form" novalidate>' +
-      '<div class="block"><h4 class="block-title">Мероприятие</h4><div class="form">' +
-      '<label class="field" data-field="occasion"><span>Повод</span><select name="occasion">' +
-      '<option value=""' + (evForm.occasion ? '' : ' selected') + '>Не выбран</option>' +
-      OCCASIONS.map(function (o) {
-        return '<option' + (evForm.occasion === o ? ' selected' : '') + '>' + o + '</option>';
-      }).join('') + '</select></label>' +
-      '<div class="row2">' + field('date', 'Дата', 'type="date" min="' + todayIso() + '"', evForm.date) +
-      field('time', evTimeLabel(), 'type="time"', evForm.time) + '</div>' +
-      '<p class="note note--warn" id="evUrgentBox"' + (urgentText() ? '' : ' hidden') + '><span class="note-ic">' + ICON.clock + '</span>' +
-      '<span id="evUrgent">' + urgentText() + '</span></p>' +
-      field('guests', 'Гостей', 'type="number" inputmode="numeric" min="1" max="2000" placeholder="Сколько гостей?"', g || '') +
-      '</div></div>' +
-      '<div class="block"><h4 class="block-title">Как доставить</h4><div class="opt-list">' + EVENT_SERVICES.map(svcOpt).join('') + '</div>' +
+      '<div class="block"><h4 class="block-title">Как получить</h4><div class="opt-list">' + EVENT_SERVICES.map(svcOpt).join('') + '</div>' +
       (needsAddress()
         ? '<div style="margin-top:12px">' + field('address', 'Адрес или место проведения', 'autocomplete="street-address" placeholder="Улица, дом или название зала"', evForm.address) + '</div>'
         : '') +
       '</div>' +
-      '<div class="block"><h4 class="block-title">Контакты</h4><div class="row2">' +
+      '<div class="block"><h4 class="block-title">Когда</h4><div class="form">' +
+      '<div class="row2">' + field('date', 'Дата', 'type="date" min="' + todayIso() + '"', evForm.date) +
+      field('time', evTimeLabel(), 'type="time"', evForm.time) + '</div>' +
+      '<p class="note note--warn" id="evUrgentBox"' + (urgentText() ? '' : ' hidden') + '><span class="note-ic">' + ICON.clock + '</span>' +
+      '<span id="evUrgent">' + urgentText() + '</span></p>' +
+      '<div class="row2">' + field('guests', 'Гостей', 'type="number" inputmode="numeric" min="1" max="2000" placeholder="Сколько?"', g || '') +
+      '<label class="field" data-field="occasion"><span>Повод <i class="fl-opt">· необязательно</i></span><select name="occasion">' +
+      '<option value=""' + (evForm.occasion ? '' : ' selected') + '>Не выбран</option>' +
+      OCCASIONS.map(function (o) {
+        return '<option' + (evForm.occasion === o ? ' selected' : '') + '>' + o + '</option>';
+      }).join('') + '</select></label></div>' +
+      '</div></div>' +
+      '<div class="block"><h4 class="block-title">Получатель</h4><div class="row2">' +
       field('name', 'Имя', 'autocomplete="given-name" placeholder="Ваше имя"', form.name) +
       field('phone', 'Телефон <i class="fl-opt">· необязательно</i>', 'type="tel" inputmode="tel" autocomplete="tel" placeholder="+7 7__ ___ __ __"', form.phone) +
       '</div></div>' +
-      '<div class="block"><h4 class="block-title">Пожелания</h4>' +
-      field('comment', '', 'placeholder="Бюджет, особые пожелания, во сколько накрыть…" aria-label="Пожелания"', evForm.comment, 'textarea') + '</div>' +
+      (evForm.comment || evCommentOpen
+        ? '<div class="block"><h4 class="block-title">Пожелания</h4>' +
+          field('comment', '', 'placeholder="Бюджет, особые пожелания" aria-label="Пожелания"', evForm.comment, 'textarea') + '</div>'
+        : '<button type="button" class="addlink" data-evcomment-open>+ Добавить пожелания</button>') +
       '<div class="block"><h4 class="block-title">Ваш стол</h4>' + thumbs +
-      '<div class="sum-row"><span>Блюда, ' + lines.length + ' ' + posWord(lines.length) + '</span><span>' + fmt(t) + '</span></div>' +
       [svcById(evForm.how)].filter(Boolean).map(function (s) {
         return '<div class="sum-row"><span>' + esc(s.title) + '</span><span>' + esc(s.price || 'бесплатно') + '</span></div>';
       }).join('') +
@@ -1335,7 +1322,7 @@
     setFoot('<p class="form-err" id="evErr" hidden style="margin-bottom:8px"></p>' +
       '<button class="btn btn--wa btn--split" type="submit" form="evOrderForm">' +
       '<span style="display:flex;align-items:center;gap:8px">' + ICON.wa + '<span>Отправить<span class="lbl-x"> заявку</span></span></span><span class="btn-sum">' + fmt(t) + '</span></button>' +
-      '<p class="foot-hint">Откроется WhatsApp с заявкой и полным чеком — нажмите «Отправить»</p>');
+      '<p class="foot-hint">Откроется WhatsApp — нажмите «Отправить»</p>');
     if (evTried) showErrors('#evOrderForm', '#evErr', evErrors(), 'Укажите: ', false);
   }
 
@@ -1382,7 +1369,7 @@
     if (res.errs.length) { showErrors('#evOrderForm', '#evErr', res, 'Укажите: ', true); return; }
     var no = orderNumber();
     var text = buildEventText(no);
-    lastEvent = { no: no, text: text, receipt: receiptHtml() };
+    lastEvent = { no: no, text: text };
     saveLast('event', lastEvent);
     openWa(text);
     // the table is sent: start the next one from scratch (contacts stay)
@@ -1408,13 +1395,12 @@
     $('#sheetExtra').innerHTML = '';
     $('#sheetBody').innerHTML = (fromBanner
         ? '<div class="success"><h4>Ваша заявка №' + e.no + '</h4></div>' +
-          sblock(1, 'Если ещё не отправили заявку', 'Откройте WhatsApp — заявка с полным чеком подставится сама, останется нажать «Отправить».',
+          sblock(1, 'Если ещё не отправили заявку', 'Откройте WhatsApp — заявка подставится сама, останется нажать «Отправить».',
             '<button class="linkbtn" type="button" id="resendEv">Открыть WhatsApp с заявкой</button>')
         : '<div class="success"><div class="success-icon success-icon--wa">' + ICON.wa + '</div><h4>Осталось отправить заявку</h4></div>' +
-          sblock(1, 'Нажмите «Отправить» в WhatsApp', 'Чат с заявкой и полным чеком уже открыт.',
+          sblock(1, 'Нажмите «Отправить» в WhatsApp', 'Чат с заявкой уже открыт.',
             '<button class="linkbtn" type="button" id="resendEv">Чат не открылся? Открыть ещё раз</button>')) +
-      sblock(2, 'Мы свяжемся с вами', 'Подтвердим меню, сумму и время.') +
-      e.receipt;
+      sblock(2, 'Мы свяжемся с вами', 'Подтвердим меню, сумму и время.');
     $('#sheetBody').scrollTop = 0;
     setFoot('<button class="btn btn--ghost" type="button" data-close>Готово</button>');
   }
@@ -1509,6 +1495,13 @@
         (g1 ? ' на ' + g1 + ' ' + guestsWord(g1) : '') + (evForm.date ? ', ' + fmtDateW(evForm.date) : '') + '. Подскажите по меню.');
       return;
     }
+    if (t.hasAttribute('data-evcomment-open')) {
+      evCommentOpen = true;
+      renderEvDetails();
+      var et = $('#evOrderForm textarea[name="comment"]');
+      if (et) et.focus();
+      return;
+    }
     if (t.hasAttribute('data-comment-open')) {
       commentOpen = true;
       renderCheckout();
@@ -1539,7 +1532,7 @@
       return;
     }
     if (t.id === 'openCart') { openCart(); return; }
-    if (t.id === 'openEv') { openEvCheck(); return; }
+    if (t.id === 'openEv') { openEvDetails(); return; }
     if (t.id === 'sheetBack') { sheetBack(); return; }
     if (t.id === 'comboAdd') {
       add('c:' + COMBO.groups.map(function (g) { return comboPick[g.key]; }).join(':'));

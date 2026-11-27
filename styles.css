@@ -12,7 +12,7 @@
   --pink: #fbeae6;
   --ink: #1f1510;
   --ink-2: #4a3a2f;
-  --muted: #6b5a4d;
+  --muted: #5c4b3f;
   --line: #e9dfcf;
   --green: #1d6b3b;
   --wa: #1faa53;
@@ -22,8 +22,9 @@
   --r: 16px;
   --r-sm: 12px;
   --shadow: 0 1px 2px rgba(60, 30, 10, .05), 0 6px 18px rgba(60, 30, 10, .07);
-  --font: 'Manrope', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-deco: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font: 'Golos Text', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-deco: 'Golos Text', system-ui, sans-serif;
+  --font-logo: 'Playfair Display', Georgia, 'Times New Roman', serif;
   --ornament: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='14' viewBox='0 0 28 14'%3E%3Crect width='28' height='14' fill='%23a3141c'/%3E%3Cpath d='M14 1l6 6-6 6-6-6z' fill='%23d4a23c'/%3E%3Cpath d='M14 4.5l2.5 2.5-2.5 2.5-2.5-2.5z' fill='%23a3141c'/%3E%3Cpath d='M0 1l6 6-6 6zM28 1l-6 6 6 6z' fill='%23f3dc9a'/%3E%3C/svg%3E");
   --pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M20 4l6 6-6 6-6-6zM0 24l6 6-6 6M40 24l-6 6 6 6M20 24l6 6-6 6-6-6z' fill='none' stroke='%23d4a23c' stroke-opacity='.22' stroke-width='1.2'/%3E%3C/svg%3E");
 }
@@ -971,6 +972,30 @@ body { font-weight: 500; }
   .combo { grid-template-columns: 1fr 92px; }
   .combo .btn { white-space: nowrap; }
 }
+
+/* ---------- Round 7: readable text, simpler screens ---------- */
+.logo, .footer-logo { font-family: var(--font-logo); }
+body { font-weight: 500; line-height: 1.4; }
+.ev-title, .evtop-title, .rc-logo, .evpromo-text b, .promo-title { font-weight: 800; letter-spacing: -.02em; }
+.card-name, .mrow-name, .ci-name, .evrow-name, .mini-name { font-size: 15px; }
+.card-note, .ci-det, .evrow-meta, .last-text small, .tset-list { font-size: 14px; }
+.sum-note, .foot-hint, .fl-opt, .kc-label, .kaspi-step, .rc-cat, .tset-from, .setcard-serves, .cartbar-label small, .field > span { font-size: 13px; }
+.badge { font-size: 12px; }
+.catnav a { font-size: 15px; }
+.brand-sub { font-size: 12px; letter-spacing: .06em; text-transform: none; font-weight: 700; color: var(--ink-2); }
+.brand-sub::before { content: none; }
+.brand-sub::after { content: none; }
+.sum-solo { margin-top: 12px; }
+.sum-solo .sum-row--total { margin: 0; padding: 0; border: 0; }
+.build-title { margin: 26px 0 0; font-size: 20px; font-weight: 800; color: var(--ink); }
+
+/* «Накроем стол»: big photo, title and button under it */
+.evtop-card { display: block; }
+.evtop-img { height: 180px; min-height: 0; }
+.evtop-kicker { display: inline-block; }
+.evtop-body { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px 14px; }
+.evtop-title { font-size: 20px; line-height: 1.15; color: #fff; }
+.evtop-cta { margin-top: 0; flex: none; padding: 10px 16px; font-size: 15px; }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
