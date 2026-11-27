@@ -4,8 +4,8 @@
 //  Чтобы убрать блюдо — удалите его строку целиком.
 //  id — внутреннее имя блюда (латиницей, не повторяться).
 //  note — мелкая подпись (вес, штуки), preorder: true — «на заказ».
-//  img — фото блюда: PH('ключ') — фото для примера из photos.js, или свой файл 'img/plov.jpg'.
-//        emoji — значок, если фото нет или оно не загрузилось.
+//  img — фото блюда, свой файл: 'img/plov.webp' (удобно через tools/photos.py).
+//        Нет фото — блюдо показывается строкой без картинки.
 //  cartName — как блюдо называется в корзине и в WhatsApp (если отличается).
 // ============================================================
 
@@ -22,24 +22,24 @@ window.MENU = [
       { id: 'tartlets-fruit', name: 'Тарталетки с фруктами', price: 5000, img: 'img/g-tart-fruit.webp', emoji: '🧁' },
       { id: 'tartlets-berry', name: 'Тарталетки с ягодами', price: 5000, img: 'img/g-tart-berries.webp', emoji: '🧁' },
       { id: 'tort-med-slice', name: 'Медовый торт', note: 'кусок', price: 900, img: 'img/medovik.webp' },
-      { id: 'whoopie-slice', name: 'Вупи пай', note: 'кусок', price: 900, img: PH('whoopie-slice') },
+      { id: 'whoopie-slice', name: 'Вупи пай', note: 'кусок', price: 900 },
       { id: 'banoffee', name: 'Баноффи пай', note: 'кусок', price: 550, img: 'img/banoffee.webp' },
-      { id: 'brownie', name: 'Брауни', price: 550, img: PH('brownie'), emoji: '🍫' },
+      { id: 'brownie', name: 'Брауни', price: 550, emoji: '🍫' },
       { id: 'tvorozhny', name: 'Творожный торт', note: 'кусок', price: 550, img: 'img/spanish.webp', emoji: '🍰' },
       { id: 'tort-med-whole', name: 'Медовый торт целиком', price: 8000, img: 'img/medovik.webp', preorder: true },
-      { id: 'whoopie-whole', name: 'Вупи пай целиком', price: 8000, img: PH('whoopie'), preorder: true },
-      { id: 'bliny-plain', name: 'Блины без начинки', note: '3 шт.', price: 200, img: PH('bliny-plain'), emoji: '🥞' },
-      { id: 'bliny-tvorog', name: 'Блин с творогом', note: '1 шт.', price: 300, img: PH('bliny-tvorog'), emoji: '🥞' },
-      { id: 'bliny-sgush', name: 'Блин со сгущёнкой', note: '1 шт.', price: 250, img: PH('bliny-sgush'), emoji: '🥞' },
+      { id: 'whoopie-whole', name: 'Вупи пай целиком', price: 8000, preorder: true },
+      { id: 'bliny-plain', name: 'Блины без начинки', note: '3 шт.', price: 200, emoji: '🥞' },
+      { id: 'bliny-tvorog', name: 'Блин с творогом', note: '1 шт.', price: 300, emoji: '🥞' },
+      { id: 'bliny-sgush', name: 'Блин со сгущёнкой', note: '1 шт.', price: 250, emoji: '🥞' },
     ],
   },
   {
     id: 'trays', title: 'Наборы к столу', nav: 'Наборы',
     items: [
-      { id: 'tray-cheburek', name: 'Чебуреки', note: 'набор', price: 4500, img: PH('cheburek-tray'), emoji: '🥟' },
+      { id: 'tray-cheburek', name: 'Чебуреки', note: 'набор', price: 4500, emoji: '🥟' },
       { id: 'tray-bliny', name: 'Блины', note: 'набор', price: 4500, img: 'img/blinchiki.webp', emoji: '🥞' },
       { id: 'tray-tvorog', name: 'Пирог творожный', note: 'набор', price: 4500, img: 'img/cheesecake.webp', emoji: '🥧' },
-      { id: 'tray-brownie', name: 'Брауни', note: 'набор', price: 4500, img: PH('brownie-tray'), emoji: '🍫' },
+      { id: 'tray-brownie', name: 'Брауни', note: 'набор', price: 4500, emoji: '🍫' },
       { id: 'tray-mak', name: 'Пирог маковый', note: 'набор', price: 4500, img: 'img/poppy.webp', emoji: '🥧' },
       { id: 'tea-pies', name: 'Пироги к чаю', note: 'набор', price: 5000, img: 'img/g-tea-pies.webp', emoji: '🥧' },
       { id: 'set-zhanuya', name: 'Сет «Жанұя»', note: '7 лепёшек, 3 қаттама, 14 самсы, 2 пирога, 12 блинчиков, 15 сочников, 20 орешков, 1 кг бауырсаков', price: 5000, img: 'img/g-boxes.webp', emoji: '🧺' },
@@ -51,7 +51,7 @@ window.MENU = [
       { id: 'samsa-meat', name: 'Самса с мясом', price: 350, img: 'img/samsa.webp' },
       { id: 'samsa-chicken', name: 'Самса с курицей', price: 350, img: 'img/samsa.webp' },
       { id: 'samsa-cheese', name: 'Самса с сыром', price: 350, img: 'img/samsa.webp' },
-      { id: 'cheburek', name: 'Чебурек', price: 200, img: PH('cheburek'), emoji: '🥟' },
+      { id: 'cheburek', name: 'Чебурек', price: 200, emoji: '🥟' },
       { id: 'bauyrsak', name: 'Бауырсаки', note: '1 кг', price: 2300, img: 'img/bauyrsak.webp', preorder: true },
       { id: 'lepeshki', name: 'Лепёшки и қаттама', note: 'набор', price: 5000, img: 'img/g-lepeshki.webp', emoji: '🫓' },
     ],
@@ -59,83 +59,83 @@ window.MENU = [
   {
     id: 'hot', title: 'Плов и манты', nav: 'Плов и манты', lead: 'Отправим горячими, в коробках',
     items: [
-      { id: 'plov', name: 'Плов ташкентский', price: 1500, img: PH('plov') },
-      { id: 'manty', name: 'Манты', price: 1500, img: PH('manty'), emoji: '🥟' },
+      { id: 'plov', name: 'Плов ташкентский', price: 1500 },
+      { id: 'manty', name: 'Манты', price: 1500, emoji: '🥟' },
     ],
   },
   {
     id: 'breakfast', title: 'Завтраки', nav: 'Завтраки', layout: 'list',
     group: 'Столовая', groupNote: 'Обеды, супы, шашлык и напитки',
     items: [
-      { id: 'combo-breakfast', name: 'Комбо-завтрак', note: 'Фуршетный стол', price: 1200, img: PH('breakfast'), emoji: '🍳', highlight: true },
-      { id: 'kasha', name: 'Каша рисовая', price: 700, img: PH('kasha'), emoji: '🥣' },
-      { id: 'egg', name: 'Яйцо с сосиской', price: 700, img: PH('egg'), emoji: '🍳' },
+      { id: 'combo-breakfast', name: 'Комбо-завтрак', note: 'Фуршетный стол', price: 1200, emoji: '🍳', highlight: true },
+      { id: 'kasha', name: 'Каша рисовая', price: 700, emoji: '🥣' },
+      { id: 'egg', name: 'Яйцо с сосиской', price: 700, emoji: '🍳' },
     ],
   },
   {
     id: 'first', title: 'Первые блюда', nav: 'Первые', layout: 'list',
     items: [
-      { id: 'shorpa', name: 'Шорпа', price: 1200, img: PH('shorpa'), emoji: '🍲' },
-      { id: 'naryn', name: 'Нарын', price: 1500, img: PH('naryn'), emoji: '🍜' },
-      { id: 'pelmeni', name: 'Пельмени', price: 1250, img: PH('pelmeni'), emoji: '🥟' },
-      { id: 'mashkhorda', name: 'Машхорда', price: 1200, img: PH('mashkhorda'), emoji: '🍲' },
-      { id: 'lagman-soup', name: 'Лагман жидкий', price: 1300, img: PH('lagman-soup'), emoji: '🍜' },
+      { id: 'shorpa', name: 'Шорпа', price: 1200, emoji: '🍲' },
+      { id: 'naryn', name: 'Нарын', price: 1500, emoji: '🍜' },
+      { id: 'pelmeni', name: 'Пельмени', price: 1250, emoji: '🥟' },
+      { id: 'mashkhorda', name: 'Машхорда', price: 1200, emoji: '🍲' },
+      { id: 'lagman-soup', name: 'Лагман жидкий', price: 1300, emoji: '🍜' },
     ],
   },
   {
     id: 'second', title: 'Вторые блюда', nav: 'Вторые', layout: 'list',
     items: [
-      { id: 'bowl', name: 'Боул с курицей', price: 1500, img: PH('bowl') },
-      { id: 'lagman-fried', name: 'Лагман жареный', price: 1500, img: PH('lagman-fried'), emoji: '🍝' },
-      { id: 'lagman-guiru', name: 'Лагман гуйру', price: 1500, img: PH('lagman-guiru'), emoji: '🍝' },
-      { id: 'kuyrdak', name: 'Куырдак', price: 2400, img: PH('kuyrdak'), emoji: '🥘' },
-      { id: 'kotlety', name: 'Котлеты с гарниром', price: 1500, img: PH('kotlety'), emoji: '🍽️' },
-      { id: 'bifshteks', name: 'Бифштекс', price: 1500, img: PH('bifshteks'), emoji: '🥩' },
-      { id: 'brizol', name: 'Бризоль', price: 1600, img: PH('brizol'), emoji: '🍳' },
-      { id: 'gulyash', name: 'Гуляш', price: 1500, img: PH('gulyash'), emoji: '🍛' },
+      { id: 'bowl', name: 'Боул с курицей', price: 1500 },
+      { id: 'lagman-fried', name: 'Лагман жареный', price: 1500, emoji: '🍝' },
+      { id: 'lagman-guiru', name: 'Лагман гуйру', price: 1500, emoji: '🍝' },
+      { id: 'kuyrdak', name: 'Куырдак', price: 2400, emoji: '🥘' },
+      { id: 'kotlety', name: 'Котлеты с гарниром', price: 1500, emoji: '🍽️' },
+      { id: 'bifshteks', name: 'Бифштекс', price: 1500, emoji: '🥩' },
+      { id: 'brizol', name: 'Бризоль', price: 1600, emoji: '🍳' },
+      { id: 'gulyash', name: 'Гуляш', price: 1500, emoji: '🍛' },
     ],
   },
   {
     id: 'shashlik', title: 'Шашлыки', nav: 'Шашлыки', layout: 'list',
     items: [
-      { id: 'shashlik-lamb', name: 'Шашлык из баранины', price: 1400, img: PH('shashlik-lamb') },
-      { id: 'shashlik-chicken', name: 'Шашлык из окорочков', price: 1000, img: PH('shashlik-chicken'), emoji: '🍢' },
-      { id: 'lulya', name: 'Люля-кебаб', price: 1000, img: PH('lulya'), emoji: '🍢' },
+      { id: 'shashlik-lamb', name: 'Шашлык из баранины', price: 1400 },
+      { id: 'shashlik-chicken', name: 'Шашлык из окорочков', price: 1000, emoji: '🍢' },
+      { id: 'lulya', name: 'Люля-кебаб', price: 1000, emoji: '🍢' },
     ],
   },
   {
     id: 'garnish', title: 'Гарниры', nav: 'Гарниры', layout: 'list',
     items: [
-      { id: 'pure', name: 'Пюре', price: 500, img: PH('pure'), emoji: '🥔' },
-      { id: 'ris', name: 'Рис', price: 500, img: PH('ris'), emoji: '🍚' },
-      { id: 'grechka', name: 'Гречка', price: 500, img: PH('grechka'), emoji: '🌾' },
-      { id: 'makarony', name: 'Макароны', price: 500, img: PH('makarony'), emoji: '🍝' },
-      { id: 'fri', name: 'Картофель фри', price: 600, img: PH('fri'), emoji: '🍟' },
+      { id: 'pure', name: 'Пюре', price: 500, emoji: '🥔' },
+      { id: 'ris', name: 'Рис', price: 500, emoji: '🍚' },
+      { id: 'grechka', name: 'Гречка', price: 500, emoji: '🌾' },
+      { id: 'makarony', name: 'Макароны', price: 500, emoji: '🍝' },
+      { id: 'fri', name: 'Картофель фри', price: 600, emoji: '🍟' },
     ],
   },
   {
     id: 'salads', title: 'Салаты', nav: 'Салаты', layout: 'list',
     items: [
-      { id: 'salad-fresh', name: 'Салат «Свежий»', price: 700, img: PH('salad-fresh') },
-      { id: 'achuchuk', name: 'Салат «Ачучук»', price: 700, img: PH('achuchuk'), emoji: '🍅' },
-      { id: 'kapusta', name: 'Квашеная капуста', price: 700, img: PH('kapusta'), emoji: '🥬' },
+      { id: 'salad-fresh', name: 'Салат «Свежий»', price: 700 },
+      { id: 'achuchuk', name: 'Салат «Ачучук»', price: 700, emoji: '🍅' },
+      { id: 'kapusta', name: 'Квашеная капуста', price: 700, emoji: '🥬' },
     ],
   },
   {
-    id: 'drinks', title: 'Напитки', nav: 'Напитки', layout: 'list',
+    id: 'drinks', title: 'Напитки', nav: 'Напитки', layout: 'list', hidden: true, // скрыто: нужно только для комбо
     items: [
-      { id: 'kompot', name: 'Компот', note: '0,5 л', price: 700, img: PH('kompot'), emoji: '🍹' },
-      { id: 'tea-black', name: 'Чай чёрный', price: 200, img: PH('tea-black'), emoji: '🫖' },
-      { id: 'tea-green', name: 'Чай зелёный', price: 200, img: PH('tea-green'), emoji: '🍵' },
-      { id: 'tea-lemon', name: 'Чай с лимоном', price: 250, img: PH('tea-lemon'), emoji: '🍋' },
-      { id: 'tea-milk', name: 'Чай с молоком', price: 250, img: PH('tea-milk'), emoji: '🥛' },
-      { id: 'coffee', name: 'Кофе 3 в 1', price: 250, img: PH('coffee'), emoji: '☕' },
+      { id: 'kompot', name: 'Компот', note: '0,5 л', price: 700, emoji: '🍹' },
+      { id: 'tea-black', name: 'Чай чёрный', price: 200, emoji: '🫖' },
+      { id: 'tea-green', name: 'Чай зелёный', price: 200, emoji: '🍵' },
+      { id: 'tea-lemon', name: 'Чай с лимоном', price: 250, emoji: '🍋' },
+      { id: 'tea-milk', name: 'Чай с молоком', price: 250, emoji: '🥛' },
+      { id: 'coffee', name: 'Кофе 3 в 1', price: 250, emoji: '☕' },
       // Чай ташкентский — в меню нет цены. Впишите цену и уберите // в начале строки:
       // { id: 'tea-tashkent', name: 'Чай ташкентский', price: 0, emoji: '🫖' },
-      { id: 'maxi-tea', name: 'Макси чай', price: 700, img: PH('icetea'), emoji: '🧃' },
-      { id: 'fuse-tea', name: 'Фьюс чай', price: 700, img: PH('icetea-2'), emoji: '🧃' },
-      { id: 'cola', name: 'Кола', price: 700, img: PH('cola'), emoji: '🥤' },
-      { id: 'pepsi', name: 'Пепси', price: 700, img: PH('cola-2'), emoji: '🥤' },
+      { id: 'maxi-tea', name: 'Макси чай', price: 700, emoji: '🧃' },
+      { id: 'fuse-tea', name: 'Фьюс чай', price: 700, emoji: '🧃' },
+      { id: 'cola', name: 'Кола', price: 700, emoji: '🥤' },
+      { id: 'pepsi', name: 'Пепси', price: 700, emoji: '🥤' },
     ],
   },
 ];
@@ -145,7 +145,6 @@ window.COMBO = {
   price: 1800,
   title: 'Комбо-обед',
   subtitle: 'Первое + второе + чай или компот',
-  image: PH('plov'),
   groups: [
     { key: 'first', label: 'Первое блюдо', options: ['shorpa', 'mashkhorda', 'pelmeni', 'naryn'] },
     { key: 'second', label: 'Второе блюдо', options: ['gulyash', 'bifshteks', 'manty', 'plov'] },
@@ -157,21 +156,21 @@ window.COMBO = {
 // округляется до 100 ₸. ЧЕРНОВИК — проверьте состав и скидки.
 window.SETS = [
   {
-    id: 'family', title: 'Семейный ужин', serves: 'на 4 человек', image: PH('plov-plate'), discount: 0.10,
-    items: [['plov', 4], ['salad-fresh', 2], ['samsa-meat', 4], ['kompot', 2]],
+    id: 'family', title: 'Семейный ужин', serves: 'на 4 человек', discount: 0.10,
+    items: [['plov', 4], ['salad-fresh', 2], ['samsa-meat', 4]],
   },
   {
-    id: 'shashlik', title: 'Шашлычный', serves: 'на 4–5 человек', image: PH('shashlik-grill'), discount: 0.10,
+    id: 'shashlik', title: 'Шашлычный', serves: 'на 4–5 человек', discount: 0.10,
     items: [['shashlik-lamb', 4], ['lulya', 4], ['shashlik-chicken', 2], ['achuchuk', 2], ['fri', 2]],
   },
   {
     id: 'tea', title: 'К чаю для гостей', serves: 'на 6–8 человек', image: 'img/bauyrsak.webp', discount: 0.10,
-    items: [['bauyrsak', 1], ['samsa-meat', 6], ['brownie', 2], ['tvorozhny', 2], ['tea-black', 6]],
+    items: [['bauyrsak', 1], ['samsa-meat', 6], ['brownie', 2], ['tvorozhny', 2]],
   },
 ];
 
 // «Добавить к заказу?» — подсказки в корзине
-window.UPSELL = ['kompot', 'samsa-meat', 'tea-black', 'achuchuk', 'cheburek', 'tort-med-slice', 'fri'];
+window.UPSELL = ['berry-cake', 'fruit-cake', 'tort-med-whole', 'maracuja', 'snickers-roll', 'set-zhanuya', 'tray-mak', 'tray-tvorog', 'meringue-roll', 'tartlets-fruit'];
 
 // ============================================================
 //  «НАКРЫТЬ СТОЛ» — конструктор стола для мероприятий
@@ -263,30 +262,17 @@ window.EVENT_MENU = [
       { id: 'tartlets-berry', unit: 'шт.' },
     ],
   },
-  {
-    id: 'drinks', title: 'Напитки', nav: 'Напитки',
-    items: [
-      { id: 'kompot', name: 'Компот 0,5 л', unit: 'шт.', note: '' },
-      { id: 'tea-black', unit: 'порц.' },
-      { id: 'tea-green', unit: 'порц.' },
-      { id: 'tea-lemon', unit: 'порц.' },
-      { id: 'cola', unit: 'шт.' },
-      { id: 'pepsi', unit: 'шт.' },
-      { id: 'fuse-tea', unit: 'шт.' },
-      { id: 'maxi-tea', unit: 'шт.' },
-    ],
-  },
 ];
 
 // Готовые столы на разное число гостей. Клиент может взять готовый и поменять,
 // а может собрать свой стол сам. ЧЕРНОВИК — проверьте состав и количество.
 // guests — на сколько гостей; items — [id блюда из меню, количество]
 window.EVENT_SETS = [
-  { guests: 10, items: [['plov', 10], ['salad-fresh', 5], ['achuchuk', 5], ['samsa-meat', 10], ['bauyrsak', 1], ['tort-med-whole', 1], ['kompot', 10], ['tea-black', 10]] },
-  { guests: 20, items: [['plov', 20], ['salad-fresh', 10], ['achuchuk', 10], ['samsa-meat', 20], ['bauyrsak', 2], ['tort-med-whole', 2], ['kompot', 20], ['tea-black', 20]] },
-  { guests: 30, items: [['plov', 30], ['salad-fresh', 15], ['achuchuk', 15], ['samsa-meat', 30], ['bauyrsak', 3], ['tort-med-whole', 3], ['kompot', 30], ['tea-black', 30]] },
-  { guests: 50, items: [['plov', 50], ['salad-fresh', 25], ['achuchuk', 25], ['samsa-meat', 50], ['bauyrsak', 5], ['tort-med-whole', 5], ['kompot', 50], ['tea-black', 50]] },
-  { guests: 100, items: [['plov', 100], ['salad-fresh', 50], ['achuchuk', 50], ['samsa-meat', 100], ['bauyrsak', 10], ['tort-med-whole', 9], ['kompot', 100], ['tea-black', 100]] },
+  { guests: 10, items: [['plov', 10], ['salad-fresh', 5], ['achuchuk', 5], ['samsa-meat', 10], ['bauyrsak', 1], ['tort-med-whole', 1]] },
+  { guests: 20, items: [['plov', 20], ['salad-fresh', 10], ['achuchuk', 10], ['samsa-meat', 20], ['bauyrsak', 2], ['tort-med-whole', 2]] },
+  { guests: 30, items: [['plov', 30], ['salad-fresh', 15], ['achuchuk', 15], ['samsa-meat', 30], ['bauyrsak', 3], ['tort-med-whole', 3]] },
+  { guests: 50, items: [['plov', 50], ['salad-fresh', 25], ['achuchuk', 25], ['samsa-meat', 50], ['bauyrsak', 5], ['tort-med-whole', 5]] },
+  { guests: 100, items: [['plov', 100], ['salad-fresh', 50], ['achuchuk', 50], ['samsa-meat', 100], ['bauyrsak', 10], ['tort-med-whole', 9]] },
 ];
 
 // Как получить стол — клиент выбирает один вариант (первый — по умолчанию).

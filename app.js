@@ -363,14 +363,14 @@
     var gs = EVENT_SETS.map(function (s) { return s.guests; });
     var range = gs.length ? gs[0] + '–' + gs[gs.length - 1] + ' гостей' : '';
     return '<section class="evtop"><button class="evtop-card" type="button" data-tab-go="events">' +
-      '<span class="evtop-img"><img src="' + esc(PH('table')) + '" alt=""><span class="evtop-kicker">Той · Ас · День рождения</span></span>' +
+      '<span class="evtop-img"><img src="' + 'img/table.webp' + '" alt=""><span class="evtop-kicker">Той · Ас · День рождения</span></span>' +
       '<span class="evtop-body"><b class="evtop-title">Накроем стол для гостей</b>' +
       '<small>' + (range ? 'Готовые столы на ' + range + ' или соберите свой' : 'Соберите стол из наших блюд') + ' — сразу увидите полный чек</small>' +
       '<span class="evtop-cta">Собрать стол <span aria-hidden="true">→</span></span></span></button></section>';
   }
   function evPromoHtml() {
     return '<section class="sec"><button class="evpromo" type="button" data-tab-go="events">' +
-      '<img src="' + esc(PH('table')) + '" alt="">' +
+      '<img src="' + 'img/table.webp' + '" alt="">' +
       '<span class="evpromo-text"><b>Накроем стол</b><small>Той, ас, день рождения — соберите стол и сразу увидите чек</small></span>' +
       '<span class="evpromo-go" aria-hidden="true">›</span></button></section>';
   }
@@ -380,7 +380,7 @@
     var cards = SETS.map(function (s) {
       var p = setPrice(s);
       return '<article class="setcard">' +
-        '<div class="setcard-img' + (s.imageFit === 'contain' ? ' setcard-img--contain' : '') + '"><img src="' + esc(s.image) + '" alt="" loading="lazy">' +
+        '<div class="setcard-img' + (s.image ? '' : ' setcard-img--none') + '">' + (s.image ? '<img src="' + esc(s.image) + '" alt="" loading="lazy">' : '') +
         (p.sum > p.price ? '<span class="setcard-badge">−' + fmt(p.sum - p.price) + '</span>' : '') +
         (s.serves ? '<span class="setcard-serves">' + esc(s.serves) + '</span>' : '') + '</div>' +
         '<div class="setcard-body"><h3 class="setcard-title">' + esc(s.title) + '</h3>' +
@@ -402,13 +402,13 @@
       return '<b>' + esc(g.label.split(' ')[0]) + ':</b> ' + esc(g.options.map(itemName).join(', '));
     }).join('<br>');
     return '<section class="sec" id="sec-combo">' + secHead(COMBO.title) +
-      '<div class="combo"><div class="combo-text">' +
+      '<div class="combo' + (COMBO.image ? '' : ' combo--plain') + '"><div class="combo-text">' +
       '<div class="combo-price">' + fmt(COMBO.price) + '</div>' +
       '<div class="combo-sub">' + esc(COMBO.subtitle) + '</div>' +
       '<p class="combo-list">' + lists + '</p>' +
       '<button class="btn btn--sm" type="button" data-open-combo>Собрать комбо</button>' +
       '<div class="combo-count" id="comboCount"></div>' +
-      '</div><div class="combo-img"><img src="' + esc(COMBO.image) + '" alt="" loading="lazy"></div></div></section>';
+      '</div>' + (COMBO.image ? '<div class="combo-img"><img src="' + esc(COMBO.image) + '" alt="" loading="lazy"></div>' : '') + '</div></section>';
   }
 
   // A section without any photo is shown as a compact list, with photos — as a grid of cards.
@@ -419,20 +419,25 @@
   }
   function rowCard(it) {
     var note = [it.note, it.preorder ? 'на заказ' : ''].filter(Boolean).join(' · ');
-    return '<article class="mrow' + (it.highlight ? ' mrow--hl' : '') + '" data-item="' + esc(it.id) + '"><div class="thumb">' + media(it) + '</div>' +
+    return '<article class="mrow' + (it.highlight ? ' mrow--hl' : '') + (it.img ? '' : ' mrow--plain') + '" data-item="' + esc(it.id) + '">' +
+      (it.img ? '<div class="thumb">' + media(it) + '</div>' : '') +
       '<div class="mrow-main"><div class="mrow-name">' + esc(it.name) + '</div>' +
       (note ? '<div class="card-note">' + esc(note) + '</div>' : '') +
       '<div class="mrow-price">' + fmt(it.price) + '</div></div>' +
       ctrl('i:' + it.id, 'sm') + '</article>';
   }
   function sectionHtml(sec) {
-    var list = sectionLayout(sec) === 'list';
+    if (sec.hidden) return '';
+    var row = function (it) { return rowCard(ITEMS[it.id]); };
+    var withImg = sec.items.filter(function (it) { return it.img; });
+    var plain = sec.items.filter(function (it) { return !it.img; });
+    var body = sectionLayout(sec) === 'list'
+      ? '<div class="mlist">' + sec.items.map(row).join('') + '</div>'
+      : (withImg.length ? '<div class="grid">' + withImg.map(function (it) { return card(ITEMS[it.id]); }).join('') + '</div>' : '') +
+        (plain.length ? '<div class="mlist' + (withImg.length ? ' plain-list' : '') + '">' + plain.map(row).join('') + '</div>' : '');
     return (sec.group ? '<div class="group-head"><b>' + esc(sec.group) + '</b>' + (sec.groupNote ? '<small>' + esc(sec.groupNote) + '</small>' : '') + '</div>' : '') +
       '<section class="sec" id="sec-' + esc(sec.id) + '">' + secHead(sec.title) + (sec.lead ? '<p class="sec-lead">' + esc(sec.lead) + '</p>' : '') +
-      (list
-        ? '<div class="mlist">' + sec.items.map(function (it) { return rowCard(ITEMS[it.id]); }).join('') + '</div>'
-        : '<div class="grid">' + sec.items.map(function (it) { return card(ITEMS[it.id]); }).join('') + '</div>') +
-      '</section>';
+      body + '</section>';
   }
 
   // extra blocks placed after a menu section (by section id)
@@ -475,8 +480,9 @@
     var longNote = it.note && it.note.length > 24;
     openSheet('item', { title: '' });
     $('#sheetBody').innerHTML =
-      '<div class="item-photo' + (it.img && it.fit === 'contain' ? ' media--contain' : '') + '">' + media(it) +
-        (it.preorder ? '<span class="badge">На заказ</span>' : '') + '</div>' +
+      (it.img
+        ? '<div class="item-photo">' + media(it) + (it.preorder ? '<span class="badge">На заказ</span>' : '') + '</div>'
+        : '<div class="item-spacer"></div>') +
       '<h2 class="item-name">' + esc(it.name) + '</h2>' +
       '<div class="item-meta"><span class="item-price">' + fmt(it.price) + '</span>' +
         (it.note && !longNote ? '<span class="item-pill">' + esc(it.note) + '</span>' : '') + '</div>' +
@@ -497,7 +503,7 @@
   function menuNavLinks() {
     var links = [];
     MENU.forEach(function (s) {
-      if (s.nav) links.push(['sec-' + s.id, s.nav]);
+      if (s.nav && !s.hidden) links.push(['sec-' + s.id, s.nav]);
       if (s.id === 'desserts' && (window.ON_ORDER || []).length) links.push(['sec-order', 'Под заказ']);
       if (s.id === 'bakery' && SETS.length) links.push(['sec-sets', 'Сеты']);
       if (s.id === 'second' && COMBO) links.push(['sec-combo', 'Комбо']);
@@ -528,8 +534,8 @@
     return q ? '= <b>' + fmt(q * it.price) + '</b>' : '';
   }
   function evRow(it) {
-    return '<div class="evrow' + (evQty(it.id) ? ' on' : '') + '" data-evrow="' + esc(it.id) + '">' +
-      '<div class="thumb">' + media(it) + '</div>' +
+    return '<div class="evrow' + (evQty(it.id) ? ' on' : '') + (it.img ? '' : ' evrow--plain') + '" data-evrow="' + esc(it.id) + '">' +
+      (it.img ? '<div class="thumb">' + media(it) + '</div>' : '') +
       '<div><div class="evrow-name">' + esc(it.name) + '</div>' +
       '<div class="evrow-meta">' + fmt(it.price) + ' / ' + esc(it.unit) + (it.note ? ' · ' + esc(it.note) : '') + '</div>' +
       '<div class="evrow-sum" data-evsum>' + evSumHtml(it.id) + '</div></div>' +
@@ -976,14 +982,12 @@
         '<div data-ctrl="' + esc(r.key) + '" data-v="sm">' + ctrlHtml(r.key, 'sm') + '</div></div></div></div>';
     }).join('');
     var inCart = cartItemIds();
-    var hasDrink = inCart.some(function (id) { return ITEMS[id] && ITEMS[id].section === 'drinks'; });
-    var upList = cart.some(function (r) { return r.key.indexOf('s:') === 0; }) ? ['tort-med-whole', 'tray-brownie'].concat(UPSELL) : UPSELL;
-    var ups = upList.filter(function (id, i) {
-      return ITEMS[id] && upList.indexOf(id) === i && inCart.indexOf(id) < 0 && !(hasDrink && ITEMS[id].section === 'drinks');
-    }).slice(0, 6).map(function (id) {
+    var ups = UPSELL.filter(function (id, i) {
+      return ITEMS[id] && UPSELL.indexOf(id) === i && inCart.indexOf(id) < 0;
+    }).sort(function (a, b) { return ITEMS[b].price - ITEMS[a].price; }).slice(0, 6).map(function (id) {
       var it = ITEMS[id];
       return '<div class="mini">' + mediaBox(it) + '<div class="mini-body">' +
-        '<div class="mini-name">' + esc((it.cartName || it.name) + (it.note ? ' · ' + it.note : '')) + '</div>' + ctrl('i:' + id, 'mini') + '</div></div>';
+        '<div class="mini-name">' + esc((it.cartName || it.name) + (it.note && it.note.length <= 24 ? ' · ' + it.note : '')) + '</div>' + ctrl('i:' + id, 'mini') + '</div></div>';
     }).join('');
 
     body.innerHTML =
@@ -1104,7 +1108,7 @@
     body.scrollTop = scroll;
     setFoot('<p class="form-err" id="orderErr" hidden style="margin-bottom:8px"></p>' +
       '<button class="btn btn--wa btn--split" type="submit" form="orderForm"' + (minOk ? '' : ' disabled') + '>' +
-      '<span style="display:flex;align-items:center;gap:8px">' + ICON.wa + '<span>Отправить<span class="lbl-x"> заказ</span></span></span>' +
+      '<span style="display:flex;align-items:center;gap:10px"><span class="wa-badge">' + ICON.wa + '</span><span>Отправить<span class="lbl-x"> заказ</span></span></span>' +
       '<span class="btn-sum">' + fmt(t) + (form.mode === 'delivery' ? '<small>+ доставка</small>' : '') + '</span></button>' +
       '<p class="foot-hint">Откроется WhatsApp — нажмите «Отправить»</p>');
     if (orderTried) showErrors('#orderForm', '#orderErr', shownOrderErrors(), 'Заполните: ', false);
@@ -1391,7 +1395,7 @@
     body.scrollTop = scroll;
     setFoot('<p class="form-err" id="evErr" hidden style="margin-bottom:8px"></p>' +
       '<button class="btn btn--wa btn--split" type="submit" form="evOrderForm">' +
-      '<span style="display:flex;align-items:center;gap:8px">' + ICON.wa + '<span>Отправить<span class="lbl-x"> заявку</span></span></span><span class="btn-sum">' + fmt(t) + '</span></button>' +
+      '<span style="display:flex;align-items:center;gap:10px"><span class="wa-badge">' + ICON.wa + '</span><span>Отправить<span class="lbl-x"> заявку</span></span></span><span class="btn-sum">' + fmt(t) + '</span></button>' +
       '<p class="foot-hint">Откроется WhatsApp — нажмите «Отправить»</p>');
     if (evTried) showErrors('#evOrderForm', '#evErr', evErrors(), 'Укажите: ', false);
   }

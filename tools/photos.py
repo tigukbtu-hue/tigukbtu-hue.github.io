@@ -8,10 +8,10 @@
    Подходят .jpg .jpeg .png .webp, любого размера, можно прямо с телефона.
 2. Запустите в папке сайта:   python tools/photos.py
    Скрипт обрежет фото под карточку (6:5), уменьшит, сохранит в img/<id>.webp
-   и сам впишет новые пути в menu.js. Фото «для примера» с Wikimedia для этих блюд больше не используются.
+   и сам впишет новые пути в menu.js.
 3. Поменяйте версию ?v= в index.html и выложите сайт (git add -A, commit, push).
 
-Без аргументов скрипт ещё и покажет, у каких блюд пока фото «для примера».
+Скрипт ещё покажет, у каких блюд пока нет фото.
 Нужен Pillow:  pip install pillow
 """
 import os
@@ -22,6 +22,11 @@ try:
     from PIL import Image, ImageOps
 except ImportError:
     sys.exit('Нужен Pillow: pip install pillow')
+
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+except Exception:
+    pass
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, 'photos-src')
@@ -52,16 +57,26 @@ def main():
         is_set = base.startswith('set-')
         key = base[4:] if is_set else base
         # dish line:  { id: 'plov', ... img: PH('plov') ... }   set line:  id: 'family', ... image: PH('plov-plate')
+        dest_name = ('set-' if is_set else '') + key + '.webp'
+        new_path = "'img/%s'" % dest_name
         if is_set:
-            pat = re.compile(r"(id: '%s',[^\n]*?image: )(PH\('[^']*'\)|'[^']*')" % re.escape(key))
+            line = re.compile(r"^(\s*id: '%s',[^\n]*)$" % re.escape(key), re.M)
         else:
-            pat = re.compile(r"(\{ id: '%s', name:[^\n]*?img: )(PH\('[^']*'\)|'[^']*')" % re.escape(key))
-        if not pat.search(menu):
+            line = re.compile(r"^(\s*\{ id: '%s', name:[^\n]*)$" % re.escape(key), re.M)
+        m = line.search(menu)
+        if not m:
             print('  ? не нашёл в menu.js:', name, '(имя файла должно быть id блюда)')
             continue
-        dest_name = ('set-' if is_set else '') + key + '.webp'
+        text = m.group(1)
+        field = 'image' if is_set else 'img'
+        if re.search(field + r": ('[^']*'|PH\('[^']*'\))", text):
+            text = re.sub(field + r": ('[^']*'|PH\('[^']*'\))", field + ': ' + new_path, text, count=1)
+        elif is_set:
+            text = text.replace('discount:', 'image: %s, discount:' % new_path, 1)
+        else:
+            text = re.sub(r" \},?\s*$", lambda e: ', img: %s%s' % (new_path, e.group(0)), text, count=1)
         convert(os.path.join(SRC, name), os.path.join(OUT, dest_name))
-        menu = pat.sub(lambda m: m.group(1) + "'img/%s'" % dest_name, menu, count=1)
+        menu = menu[:m.start(1)] + text + menu[m.end(1):]
         done.append(name)
 
     with open(MENU, 'w', encoding='utf-8', newline='') as f:
@@ -70,9 +85,10 @@ def main():
     print('Готово, фото:', len(done))
     for n in done:
         print('  +', n)
-    left = re.findall(r"\{ id: '([^']+)', name: '([^']+)'[^\n]*img: PH\(", menu)
+    left = [m for m in re.findall(r"\{ id: '([^']+)', name: '([^']+)'([^\n]*)", menu) if 'price:' in m[2] and "img: 'img/" not in m[2]]
+    left = [(i, n) for i, n, _ in left]
     if left:
-        print('\nПока фото для примера (%d):' % len(left))
+        print('\nПока без фото (%d):' % len(left))
         print('  ' + ', '.join('%s (%s)' % (n, i) for i, n in left))
 
 

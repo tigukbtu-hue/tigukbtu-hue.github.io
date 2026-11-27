@@ -1043,6 +1043,16 @@ body { font-weight: 500; line-height: 1.4; }
 .sheet--item .sheet-body { padding-top: 0; }
 .sheet--item .item-photo { margin-top: 0; }
 
+/* ---------- Round 10: own photos only, WhatsApp badge ---------- */
+.mrow--plain { grid-template-columns: minmax(0, 1fr) auto; min-height: 60px; }
+.plain-list { margin-top: 12px; }
+.evrow--plain { grid-template-columns: minmax(0, 1fr) auto; }
+.setcard-img--none { height: 52px; background: var(--pink) var(--pattern); }
+.combo--plain { grid-template-columns: 1fr; }
+.item-spacer { height: 52px; }
+.wa-badge { flex: none; width: 32px; height: 32px; border-radius: 50%; background: #fff; color: var(--wa); display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0, 0, 0, .15); }
+.wa-badge svg { width: 21px; height: 21px; }
+
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
