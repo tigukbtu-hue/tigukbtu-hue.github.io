@@ -308,6 +308,14 @@
     var k = esc(key);
     var x = resolve(key);
     var nm = esc(x ? x.name : '');
+    if (v === 'sheet') {
+      if (!q) {
+        return '<button class="btn btn--split" type="button" data-add="' + k + '"><span>Добавить</span><span>' + fmt(x ? x.price : 0) + '</span></button>';
+      }
+      return '<div class="item-qty"><div class="stepper"><button type="button" data-dec="' + k + '" aria-label="Убрать одну: ' + nm + '">−</button>' +
+        '<span>' + q + '</span><button type="button" data-inc="' + k + '" aria-label="Добавить ещё: ' + nm + '">+</button></div>' +
+        '<button class="btn" type="button" data-close>Готово · ' + fmt((x ? x.price : 0) * q) + '</button></div>';
+    }
     if (v === 'card') {
       if (!q) {
         return '<div class="card-row"><span class="card-price">' + fmt(x ? x.price : 0) + '</span>' +
@@ -336,10 +344,10 @@
   // ---------- menu rendering ----------
   function card(it) {
     var badge = it.preorder ? '<span class="badge">На заказ</span>' : '';
-    return '<article class="card' + (it.highlight ? ' card--hl' : '') + '">' +
+    return '<article class="card' + (it.highlight ? ' card--hl' : '') + '" data-item="' + esc(it.id) + '">' +
       mediaBox(it, badge) +
       '<div class="card-body"><div class="card-name">' + esc(it.name) + '</div>' +
-      (it.note ? '<div class="card-note">' + esc(it.note) + '</div>' : '') +
+      (it.note && it.note.length <= 24 ? '<div class="card-note">' + esc(it.note) + '</div>' : '') +
       ctrl('i:' + it.id, 'card') + '</div></article>';
   }
 
@@ -411,7 +419,7 @@
   }
   function rowCard(it) {
     var note = [it.note, it.preorder ? 'на заказ' : ''].filter(Boolean).join(' · ');
-    return '<article class="mrow' + (it.highlight ? ' mrow--hl' : '') + '"><div class="thumb">' + media(it) + '</div>' +
+    return '<article class="mrow' + (it.highlight ? ' mrow--hl' : '') + '" data-item="' + esc(it.id) + '"><div class="thumb">' + media(it) + '</div>' +
       '<div class="mrow-main"><div class="mrow-name">' + esc(it.name) + '</div>' +
       (note ? '<div class="card-note">' + esc(note) + '</div>' : '') +
       '<div class="mrow-price">' + fmt(it.price) + '</div></div>' +
@@ -457,6 +465,25 @@
     }).join('') +
       (C.instagram ? '<a class="review-more" href="https://instagram.com/' + esc(C.instagram) + '" target="_blank" rel="noopener">Больше отзывов и фото в Instagram →</a>' : '') +
       '</div></section>';
+  }
+
+  // the dish card: big photo, price, description, add to cart
+  function openItem(id) {
+    var it = ITEMS[id];
+    if (!it) return;
+    var desc = it.desc || (window.DESC || {})[id] || '';
+    var longNote = it.note && it.note.length > 24;
+    openSheet('item', { title: '' });
+    $('#sheetBody').innerHTML =
+      '<div class="item-photo' + (it.img && it.fit === 'contain' ? ' media--contain' : '') + '">' + media(it) +
+        (it.preorder ? '<span class="badge">На заказ</span>' : '') + '</div>' +
+      '<h2 class="item-name">' + esc(it.name) + '</h2>' +
+      '<div class="item-meta"><span class="item-price">' + fmt(it.price) + '</span>' +
+        (it.note && !longNote ? '<span class="item-pill">' + esc(it.note) + '</span>' : '') + '</div>' +
+      (desc ? '<p class="item-desc">' + esc(desc) + '</p>' : '') +
+      (longNote ? '<p class="item-desc"><b>Состав:</b> ' + esc(it.note) + '</p>' : '');
+    $('#sheetBody').scrollTop = 0;
+    setFoot('<div data-ctrl="i:' + esc(id) + '" data-v="sheet">' + ctrlHtml('i:' + id, 'sheet') + '</div>');
   }
 
   function renderMenu() {
@@ -869,6 +896,7 @@
     $('#sheetBack').hidden = !o.back;
     $('#sheetExtra').innerHTML = o.extra || '';
     $('#sheet').classList.toggle('sheet--full', !!o.full);
+    $('#sheet').classList.toggle('sheet--item', mode === 'item');
     $('#sheet').hidden = false;
     $('#cartbar').hidden = true;
     $('#evbar').hidden = true;
@@ -1496,7 +1524,11 @@
       return;
     }
     var t = e.target.closest('button, a, [data-close]');
-    if (!t) return;
+    if (!t) {
+      var di = e.target.closest('[data-item]');
+      if (di) openItem(di.getAttribute('data-item'));
+      return;
+    }
     var a;
     if (t.hasAttribute('data-add')) { add(t.getAttribute('data-add')); return; }
     if (t.hasAttribute('data-inc')) { a = t.getAttribute('data-inc'); setQty(a, qtyOf(a) + 1); return; }
