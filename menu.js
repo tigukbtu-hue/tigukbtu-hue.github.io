@@ -72,11 +72,11 @@ window.MENU = [
   {
     id: 'bakery', title: 'Горячая выпечка', nav: 'Выпечка',
     items: [
-      { id: 'samsa-meat', name: 'Самса с мясом', price: 350, img: PH('samsa-meat') },
-      { id: 'samsa-chicken', name: 'Самса с курицей', price: 350, img: PH('samsa-chicken') },
-      { id: 'samsa-cheese', name: 'Самса с сыром', price: 350, img: PH('samsa-cheese') },
+      { id: 'samsa-meat', name: 'Самса с мясом', price: 350, img: 'img/samsa.webp' },
+      { id: 'samsa-chicken', name: 'Самса с курицей', price: 350, img: 'img/samsa.webp' },
+      { id: 'samsa-cheese', name: 'Самса с сыром', price: 350, img: 'img/samsa.webp' },
       { id: 'cheburek', name: 'Чебурек', price: 200, img: PH('cheburek'), emoji: '🥟' },
-      { id: 'bauyrsak', name: 'Бауырсаки', note: '1 кг', price: 2300, img: PH('bauyrsak'), preorder: true },
+      { id: 'bauyrsak', name: 'Бауырсаки', note: '1 кг', price: 2300, img: 'img/bauyrsak.webp', preorder: true },
     ],
   },
   {
@@ -84,9 +84,9 @@ window.MENU = [
     items: [
       { id: 'tray-cheburek', name: 'Чебуреки', note: 'набор', price: 4500, img: PH('cheburek-tray'), emoji: '🥟' },
       { id: 'tray-bliny', name: 'Блины', note: 'набор', price: 4500, img: PH('bliny-stack'), emoji: '🥞' },
-      { id: 'tray-tvorog', name: 'Пирог творожный', note: 'набор', price: 4500, img: PH('tvorog-pie'), emoji: '🥧' },
+      { id: 'tray-tvorog', name: 'Пирог творожный', note: 'набор', price: 4500, img: 'img/cheesecake.webp', emoji: '🥧' },
       { id: 'tray-brownie', name: 'Брауни', note: 'набор', price: 4500, img: PH('brownie-tray'), emoji: '🍫' },
-      { id: 'tray-mak', name: 'Пирог маковый', note: 'набор', price: 4500, img: PH('mak'), emoji: '🥧' },
+      { id: 'tray-mak', name: 'Пирог маковый', note: 'набор', price: 4500, img: 'img/poppy.webp', emoji: '🥧' },
     ],
   },
   {
@@ -94,9 +94,9 @@ window.MENU = [
     items: [
       { id: 'tort-med-slice', name: 'Медовый торт', note: 'кусок', price: 900, img: PH('medovik-slice') },
       { id: 'whoopie-slice', name: 'Вупи пай', note: 'кусок', price: 900, img: PH('whoopie-slice') },
-      { id: 'banoffee', name: 'Баноффи пай', note: 'кусок', price: 550, img: PH('banoffee') },
+      { id: 'banoffee', name: 'Баноффи пай', note: 'кусок', price: 550, img: 'img/banoffee.webp' },
       { id: 'brownie', name: 'Брауни', price: 550, img: PH('brownie'), emoji: '🍫' },
-      { id: 'tvorozhny', name: 'Творожный торт', note: 'кусок', price: 550, img: PH('cheesecake'), emoji: '🍰' },
+      { id: 'tvorozhny', name: 'Творожный торт', note: 'кусок', price: 550, img: 'img/spanish.webp', emoji: '🍰' },
       { id: 'tort-med-whole', name: 'Медовый торт целиком', price: 8000, img: PH('medovik'), preorder: true },
       { id: 'whoopie-whole', name: 'Вупи пай целиком', price: 8000, img: PH('whoopie'), preorder: true },
       { id: 'bliny-plain', name: 'Блины без начинки', note: '3 шт.', price: 200, img: PH('bliny-plain'), emoji: '🥞' },
@@ -148,7 +148,7 @@ window.SETS = [
     items: [['shashlik-lamb', 4], ['lulya', 4], ['shashlik-chicken', 2], ['achuchuk', 2], ['fri', 2]],
   },
   {
-    id: 'tea', title: 'К чаю для гостей', serves: 'на 6–8 человек', image: PH('bauyrsak'), discount: 0.10,
+    id: 'tea', title: 'К чаю для гостей', serves: 'на 6–8 человек', image: 'img/bauyrsak.webp', discount: 0.10,
     items: [['bauyrsak', 1], ['samsa-meat', 6], ['brownie', 2], ['tvorozhny', 2], ['tea-black', 6]],
   },
 ];

@@ -1411,7 +1411,12 @@
     openSheet('credits', { title: 'Авторы фото', full: true });
     $('#sheetBody').innerHTML =
       '<p class="note"><span class="note-ic">' + ICON.info + '</span><span>Фото блюд — для примера, с Wikimedia Commons. Подача в «Восточке» может отличаться.</span></p>' +
-      '<div class="block credits">' + Object.keys(P).map(function (k) {
+      '<div class="block credits">' + Object.keys(P).filter(function (k) {
+        // only example photos that are on the site now; own photos need no credit
+        var src = P[k].src;
+        return !P[k].own && (Object.keys(ITEMS).some(function (id) { return ITEMS[id].img === src; }) ||
+          SETS.some(function (s) { return s.image === src; }) || (COMBO && COMBO.image === src));
+      }).map(function (k) {
         var p = P[k];
         return '<div class="credit"><img src="' + esc(p.src) + '" alt="" loading="lazy"><div><b>' + esc(p.name || k) + '</b>' +
           '<small>' + esc(p.author || 'автор не указан') + ' · ' + esc(p.license || '') +
