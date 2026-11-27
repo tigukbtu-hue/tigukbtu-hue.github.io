@@ -11,7 +11,50 @@
 
 window.MENU = [
   {
-    id: 'breakfast', title: 'Завтраки', nav: 'Завтраки',
+    id: 'desserts', title: 'Торты и десерты', nav: 'Торты',
+    items: [
+      { id: 'tort-med-slice', name: 'Медовый торт', note: 'кусок', price: 900, img: 'img/medovik.webp' },
+      { id: 'whoopie-slice', name: 'Вупи пай', note: 'кусок', price: 900, img: PH('whoopie-slice') },
+      { id: 'banoffee', name: 'Баноффи пай', note: 'кусок', price: 550, img: 'img/banoffee.webp' },
+      { id: 'brownie', name: 'Брауни', price: 550, img: PH('brownie'), emoji: '🍫' },
+      { id: 'tvorozhny', name: 'Творожный торт', note: 'кусок', price: 550, img: 'img/spanish.webp', emoji: '🍰' },
+      { id: 'tort-med-whole', name: 'Медовый торт целиком', price: 8000, img: 'img/medovik.webp', preorder: true },
+      { id: 'whoopie-whole', name: 'Вупи пай целиком', price: 8000, img: PH('whoopie'), preorder: true },
+      { id: 'bliny-plain', name: 'Блины без начинки', note: '3 шт.', price: 200, img: PH('bliny-plain'), emoji: '🥞' },
+      { id: 'bliny-tvorog', name: 'Блин с творогом', note: '1 шт.', price: 300, img: PH('bliny-tvorog'), emoji: '🥞' },
+      { id: 'bliny-sgush', name: 'Блин со сгущёнкой', note: '1 шт.', price: 250, img: PH('bliny-sgush'), emoji: '🥞' },
+    ],
+  },
+  {
+    id: 'trays', title: 'Наборы к столу', nav: 'Наборы',
+    items: [
+      { id: 'tray-cheburek', name: 'Чебуреки', note: 'набор', price: 4500, img: PH('cheburek-tray'), emoji: '🥟' },
+      { id: 'tray-bliny', name: 'Блины', note: 'набор', price: 4500, img: 'img/blinchiki.webp', emoji: '🥞' },
+      { id: 'tray-tvorog', name: 'Пирог творожный', note: 'набор', price: 4500, img: 'img/cheesecake.webp', emoji: '🥧' },
+      { id: 'tray-brownie', name: 'Брауни', note: 'набор', price: 4500, img: PH('brownie-tray'), emoji: '🍫' },
+      { id: 'tray-mak', name: 'Пирог маковый', note: 'набор', price: 4500, img: 'img/poppy.webp', emoji: '🥧' },
+    ],
+  },
+  {
+    id: 'bakery', title: 'Выпечка', nav: 'Выпечка',
+    items: [
+      { id: 'samsa-meat', name: 'Самса с мясом', price: 350, img: 'img/samsa.webp' },
+      { id: 'samsa-chicken', name: 'Самса с курицей', price: 350, img: 'img/samsa.webp' },
+      { id: 'samsa-cheese', name: 'Самса с сыром', price: 350, img: 'img/samsa.webp' },
+      { id: 'cheburek', name: 'Чебурек', price: 200, img: PH('cheburek'), emoji: '🥟' },
+      { id: 'bauyrsak', name: 'Бауырсаки', note: '1 кг', price: 2300, img: 'img/bauyrsak.webp', preorder: true },
+    ],
+  },
+  {
+    id: 'hot', title: 'Плов и манты', nav: 'Плов и манты', lead: 'Отправим горячими, в коробках',
+    items: [
+      { id: 'plov', name: 'Плов ташкентский', price: 1500, img: PH('plov') },
+      { id: 'manty', name: 'Манты', price: 1500, img: PH('manty'), emoji: '🥟' },
+    ],
+  },
+  {
+    id: 'breakfast', title: 'Завтраки', nav: 'Завтраки', layout: 'list',
+    group: 'Столовая', groupNote: 'Обеды, супы, шашлык и напитки',
     items: [
       { id: 'combo-breakfast', name: 'Комбо-завтрак', note: 'Фуршетный стол', price: 1200, img: PH('breakfast'), emoji: '🍳', highlight: true },
       { id: 'kasha', name: 'Каша рисовая', price: 700, img: PH('kasha'), emoji: '🥣' },
@@ -19,7 +62,7 @@ window.MENU = [
     ],
   },
   {
-    id: 'first', title: 'Первые блюда', nav: 'Первые',
+    id: 'first', title: 'Первые блюда', nav: 'Первые', layout: 'list',
     items: [
       { id: 'shorpa', name: 'Шорпа', price: 1200, img: PH('shorpa'), emoji: '🍲' },
       { id: 'naryn', name: 'Нарын', price: 1500, img: PH('naryn'), emoji: '🍜' },
@@ -29,11 +72,9 @@ window.MENU = [
     ],
   },
   {
-    id: 'second', title: 'Вторые блюда', nav: 'Вторые',
+    id: 'second', title: 'Вторые блюда', nav: 'Вторые', layout: 'list',
     items: [
-      { id: 'plov', name: 'Плов ташкентский', price: 1500, img: PH('plov') },
       { id: 'bowl', name: 'Боул с курицей', price: 1500, img: PH('bowl') },
-      { id: 'manty', name: 'Манты', price: 1500, img: PH('manty'), emoji: '🥟' },
       { id: 'lagman-fried', name: 'Лагман жареный', price: 1500, img: PH('lagman-fried'), emoji: '🍝' },
       { id: 'lagman-guiru', name: 'Лагман гуйру', price: 1500, img: PH('lagman-guiru'), emoji: '🍝' },
       { id: 'kuyrdak', name: 'Куырдак', price: 2400, img: PH('kuyrdak'), emoji: '🥘' },
@@ -44,7 +85,7 @@ window.MENU = [
     ],
   },
   {
-    id: 'shashlik', title: 'Шашлыки', nav: 'Шашлыки',
+    id: 'shashlik', title: 'Шашлыки', nav: 'Шашлыки', layout: 'list',
     items: [
       { id: 'shashlik-lamb', name: 'Шашлык из баранины', price: 1400, img: PH('shashlik-lamb') },
       { id: 'shashlik-chicken', name: 'Шашлык из окорочков', price: 1000, img: PH('shashlik-chicken'), emoji: '🍢' },
@@ -62,46 +103,11 @@ window.MENU = [
     ],
   },
   {
-    id: 'salads', title: 'Салаты', nav: 'Салаты',
+    id: 'salads', title: 'Салаты', nav: 'Салаты', layout: 'list',
     items: [
       { id: 'salad-fresh', name: 'Салат «Свежий»', price: 700, img: PH('salad-fresh') },
       { id: 'achuchuk', name: 'Салат «Ачучук»', price: 700, img: PH('achuchuk'), emoji: '🍅' },
       { id: 'kapusta', name: 'Квашеная капуста', price: 700, img: PH('kapusta'), emoji: '🥬' },
-    ],
-  },
-  {
-    id: 'bakery', title: 'Горячая выпечка', nav: 'Выпечка',
-    items: [
-      { id: 'samsa-meat', name: 'Самса с мясом', price: 350, img: 'img/samsa.webp' },
-      { id: 'samsa-chicken', name: 'Самса с курицей', price: 350, img: 'img/samsa.webp' },
-      { id: 'samsa-cheese', name: 'Самса с сыром', price: 350, img: 'img/samsa.webp' },
-      { id: 'cheburek', name: 'Чебурек', price: 200, img: PH('cheburek'), emoji: '🥟' },
-      { id: 'bauyrsak', name: 'Бауырсаки', note: '1 кг', price: 2300, img: 'img/bauyrsak.webp', preorder: true },
-    ],
-  },
-  {
-    id: 'trays', title: 'Наборы к столу', nav: 'Наборы',
-    items: [
-      { id: 'tray-cheburek', name: 'Чебуреки', note: 'набор', price: 4500, img: PH('cheburek-tray'), emoji: '🥟' },
-      { id: 'tray-bliny', name: 'Блины', note: 'набор', price: 4500, img: PH('bliny-stack'), emoji: '🥞' },
-      { id: 'tray-tvorog', name: 'Пирог творожный', note: 'набор', price: 4500, img: 'img/cheesecake.webp', emoji: '🥧' },
-      { id: 'tray-brownie', name: 'Брауни', note: 'набор', price: 4500, img: PH('brownie-tray'), emoji: '🍫' },
-      { id: 'tray-mak', name: 'Пирог маковый', note: 'набор', price: 4500, img: 'img/poppy.webp', emoji: '🥧' },
-    ],
-  },
-  {
-    id: 'desserts', title: 'Десерты и торты', nav: 'Десерты',
-    items: [
-      { id: 'tort-med-slice', name: 'Медовый торт', note: 'кусок', price: 900, img: PH('medovik-slice') },
-      { id: 'whoopie-slice', name: 'Вупи пай', note: 'кусок', price: 900, img: PH('whoopie-slice') },
-      { id: 'banoffee', name: 'Баноффи пай', note: 'кусок', price: 550, img: 'img/banoffee.webp' },
-      { id: 'brownie', name: 'Брауни', price: 550, img: PH('brownie'), emoji: '🍫' },
-      { id: 'tvorozhny', name: 'Творожный торт', note: 'кусок', price: 550, img: 'img/spanish.webp', emoji: '🍰' },
-      { id: 'tort-med-whole', name: 'Медовый торт целиком', price: 8000, img: PH('medovik'), preorder: true },
-      { id: 'whoopie-whole', name: 'Вупи пай целиком', price: 8000, img: PH('whoopie'), preorder: true },
-      { id: 'bliny-plain', name: 'Блины без начинки', note: '3 шт.', price: 200, img: PH('bliny-plain'), emoji: '🥞' },
-      { id: 'bliny-tvorog', name: 'Блин с творогом', note: '1 шт.', price: 300, img: PH('bliny-tvorog'), emoji: '🥞' },
-      { id: 'bliny-sgush', name: 'Блин со сгущёнкой', note: '1 шт.', price: 250, img: PH('bliny-sgush'), emoji: '🥞' },
     ],
   },
   {
@@ -269,4 +275,33 @@ window.EVENT_SERVICES = [
   { id: 'serve', emoji: '🍽️', title: 'Привезём и накроем стол', sub: 'Привезём, расставим и красиво накроем', price: 'по договорённости', address: true, time: 'Во сколько накрыть' },
   { id: 'delivery', emoji: '🚚', title: 'Только доставка', sub: 'Яндекс Доставкой к нужному времени', price: 'по тарифу', address: true, time: 'К какому времени привезти' },
   { id: 'pickup', emoji: '🛍️', title: 'Заберу сам', sub: '', price: '', address: false, time: 'Когда заберёте' },
+];
+
+// ============================================================
+//  ПОД ЗАКАЗ — блюда с фото, но без цены. На сайте у них кнопка «Узнать цену» (WhatsApp).
+//  Когда будет цена — перенесите блюдо в меню выше и впишите price:.
+// ============================================================
+window.ON_ORDER = [
+  { name: 'Маракуйя чизкейк', img: 'img/g-maracuja.webp' },
+  { name: 'Рулет «Сникерс»', img: 'img/g-snickers.webp' },
+  { name: 'Торт с ягодами', img: 'img/g-berrycake.webp' },
+  { name: 'Торт с фруктами', img: 'img/g-custom-cake.webp' },
+  { name: 'Меренговый рулет', img: 'img/g-meringue.webp' },
+  { name: 'Тарталетки с фруктами', img: 'img/g-tart-fruit.webp' },
+  { name: 'Тарталетки с ягодами', img: 'img/g-tart-berries.webp' },
+  { name: 'Пироги к чаю', img: 'img/g-tea-pies.webp' },
+  { name: 'Лепёшки и қаттама', img: 'img/g-lepeshki.webp' },
+  { name: 'Сет «Жанұя»', img: 'img/g-boxes.webp', note: '7 лепёшек, 3 қаттама, 14 самсы, 2 пирога, 12 блинчиков, 15 сочников, 20 орешков, 1 кг бауырсаков' },
+];
+
+// Фото накрытых столов — на вкладке «Накрыть стол» (нажатием открываются крупно)
+window.TABLE_PHOTOS = ['img/t-spread.webp', 'img/t-cakes.webp', 'img/t-roses.webp'];
+
+// Отзывы клиентов — только настоящие (этот — из Instagram)
+window.REVIEWS = [
+  {
+    text: 'Заказываю уже второй раз, очень вкусно, а самое главное — по-домашнему. Баурсаки, лепёшки, выпечка во рту тают. ' +
+      'Салаты тоже топ, особенно понравилась заправка. Экономия сил, времени и денег. Цены адекватные, качество супер.',
+    author: 'Дина', source: 'отзыв в Instagram',
+  },
 ];

@@ -419,25 +419,60 @@
   }
   function sectionHtml(sec) {
     var list = sectionLayout(sec) === 'list';
-    return '<section class="sec" id="sec-' + esc(sec.id) + '">' + secHead(sec.title) +
+    return (sec.group ? '<div class="group-head"><b>' + esc(sec.group) + '</b>' + (sec.groupNote ? '<small>' + esc(sec.groupNote) + '</small>' : '') + '</div>' : '') +
+      '<section class="sec" id="sec-' + esc(sec.id) + '">' + secHead(sec.title) + (sec.lead ? '<p class="sec-lead">' + esc(sec.lead) + '</p>' : '') +
       (list
         ? '<div class="mlist">' + sec.items.map(function (it) { return rowCard(ITEMS[it.id]); }).join('') + '</div>'
         : '<div class="grid">' + sec.items.map(function (it) { return card(ITEMS[it.id]); }).join('') + '</div>') +
       '</section>';
   }
 
+  // extra blocks placed after a menu section (by section id)
+  var MENU_AFTER = {
+    desserts: function () { return onOrderHtml(); },
+    bakery: function () { return setsHtml(); },
+    hot: function () { return reviewsHtml('sec-reviews'); },
+    second: function () { return comboHtml(); },
+  };
+
+  function onOrderHtml() {
+    var L = window.ON_ORDER || [];
+    if (!L.length) return '';
+    return '<section class="sec" id="sec-order">' + secHead('Под заказ') +
+      '<p class="sec-lead">Цену подскажем в WhatsApp</p><div class="grid">' + L.map(function (g, i) {
+        return '<article class="card card--order"><button class="media media-btn" type="button" data-zoom="' + esc(g.img) + '" aria-label="Фото: ' + esc(g.name) + '">' +
+          '<img src="' + esc(g.img) + '" alt="' + esc(g.name) + '" loading="lazy"></button>' +
+          '<div class="card-body"><div class="card-name">' + esc(g.name) + '</div>' +
+          (g.note ? '<div class="card-note">' + esc(g.note) + '</div>' : '') +
+          '<button class="ask-btn" type="button" data-ask="' + i + '">' + ICON.wa + '<span>Узнать цену</span></button></div></article>';
+      }).join('') + '</div></section>';
+  }
+
+  function reviewsHtml(id) {
+    var R = window.REVIEWS || [];
+    if (!R.length) return '';
+    return '<section class="sec" id="' + id + '">' + secHead('Отзывы') + '<div class="pad">' + R.map(function (r) {
+      return '<figure class="review"><blockquote>' + esc(r.text) + '</blockquote>' +
+        '<figcaption>' + esc(r.author) + (r.source ? ' · ' + esc(r.source) : '') + '</figcaption></figure>';
+    }).join('') +
+      (C.instagram ? '<a class="review-more" href="https://instagram.com/' + esc(C.instagram) + '" target="_blank" rel="noopener">Больше отзывов и фото в Instagram →</a>' : '') +
+      '</div></section>';
+  }
+
   function renderMenu() {
-    var hasSecond = MENU.some(function (s) { return s.id === 'second'; });
-    $('#menu').innerHTML = evTopHtml() + setsHtml() + MENU.map(function (sec) {
-      return sectionHtml(sec) + (sec.id === 'second' ? comboHtml() : '');
-    }).join('') + (hasSecond ? '' : comboHtml());
+    var ids = MENU.map(function (x) { return x.id; });
+    var rest = Object.keys(MENU_AFTER).filter(function (k) { return ids.indexOf(k) < 0; });
+    $('#menu').innerHTML = evTopHtml() + MENU.map(function (sec) {
+      return sectionHtml(sec) + (MENU_AFTER[sec.id] ? MENU_AFTER[sec.id]() : '');
+    }).join('') + rest.map(function (k) { return MENU_AFTER[k](); }).join('');
   }
 
   function menuNavLinks() {
     var links = [];
-    if (SETS.length) links.push(['sec-sets', 'Сеты']);
     MENU.forEach(function (s) {
       if (s.nav) links.push(['sec-' + s.id, s.nav]);
+      if (s.id === 'desserts' && (window.ON_ORDER || []).length) links.push(['sec-order', 'Под заказ']);
+      if (s.id === 'bakery' && SETS.length) links.push(['sec-sets', 'Сеты']);
       if (s.id === 'second' && COMBO) links.push(['sec-combo', 'Комбо']);
     });
     return links;
@@ -521,6 +556,12 @@
 
       '</section>';
 
+    var TP = window.TABLE_PHOTOS || [];
+    var photos = TP.length ? '<section class="sec" id="evs-photos">' + secHead('Так мы накрываем') +
+      '<div class="hscroll tphotos">' + TP.map(function (src) {
+        return '<button type="button" class="tphoto" data-zoom="' + esc(src) + '" aria-label="Фото стола"><img src="' + esc(src) + '" alt="Накрытый стол" loading="lazy"></button>';
+      }).join('') + '</div></section>' : '';
+
     var sets = EVENT_SETS.length ? '<section class="sec" id="evs-sets">' + secHead('Готовые столы') +
       '<p class="sec-lead" id="tsetHint"></p>' +
       '<div class="hscroll" id="tsetRow">' + EVENT_SETS.map(tableSetCard).join('') + '</div></section>' : '';
@@ -533,7 +574,7 @@
         '<div class="pad"><div class="block evlist">' + cat.items.map(evRow).join('') + '</div></div></section>';
     }).join('');
 
-    $('#view-events').innerHTML = hero + sets + intro + cats;
+    $('#view-events').innerHTML = hero + photos + sets + intro + cats + reviewsHtml('evs-reviews');
     markMatchingSet(false);
     updateEvCounts();
     updateRescale();
@@ -541,6 +582,7 @@
 
   function evNavLinks() {
     var links = [['evs-guests', 'Гости']];
+    if ((window.TABLE_PHOTOS || []).length) links.push(['evs-photos', 'Фото']);
     if (EVENT_SETS.length) links.push(['evs-sets', 'Готовые столы']);
     EVCATS.forEach(function (c) { links.push(['evs-' + c.id, c.nav]); });
     return links;
@@ -1493,6 +1535,17 @@
     if (t.hasAttribute('data-go')) { goTo(t.getAttribute('data-go')); return; }
     if (t.hasAttribute('data-step')) { openCheckout(); return; }
     if (t.hasAttribute('data-credits')) { openCredits(); return; }
+    if (t.hasAttribute('data-ask')) {
+      var g2 = (window.ON_ORDER || [])[parseInt(t.getAttribute('data-ask'), 10)];
+      if (g2) openWa('Здравствуйте! Хочу заказать «' + g2.name + '». Подскажите, пожалуйста, цену.');
+      return;
+    }
+    if (t.hasAttribute('data-zoom')) {
+      openSheet('photo', { title: '', full: true });
+      $('#sheetBody').innerHTML = '<img class="zoom-img" src="' + esc(t.getAttribute('data-zoom')) + '" alt="">';
+      setFoot('<button class="btn btn--ghost" type="button" data-close>Закрыть</button>');
+      return;
+    }
     if (t.hasAttribute('data-rescale')) { rescaleTo(); return; }
     if (t.hasAttribute('data-ev-help')) {
       var g1 = G();

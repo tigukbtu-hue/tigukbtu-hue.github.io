@@ -23,7 +23,7 @@ window.CONFIG = {
 
   address: 'Тараз, Гранд Базар',
   hours: '',            // например 'Ежедневно 08:00–20:00'
-  instagram: '',        // например 'vostochka_taraz' (без @)
+  instagram: 'tatti_dessertt', // Instagram без @
   twoGisLink: '',       // ссылка на карточку в 2GIS
 
   // Минимальная сумма заказа на доставку (0 — без минимума)

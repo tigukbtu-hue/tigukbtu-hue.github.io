@@ -997,6 +997,26 @@ body { font-weight: 500; line-height: 1.4; }
 .evtop-title { font-size: 20px; line-height: 1.15; color: #fff; }
 .evtop-cta { margin-top: 0; flex: none; padding: 10px 16px; font-size: 15px; }
 
+/* ---------- Round 8: pastry first, on-order gallery, reviews ---------- */
+.group-head { margin: 40px 16px 0; padding-top: 20px; border-top: 2px dashed var(--line); }
+.group-head b { display: block; font-size: 26px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+.group-head small { display: block; margin-top: 2px; font-size: 14px; color: var(--muted); }
+.media-btn { display: block; width: 100%; padding: 0; border: 0; cursor: zoom-in; }
+.card--order .card-body { gap: 6px; }
+.card--order .card-note { font-size: 13px; line-height: 1.35; }
+.ask-btn { margin-top: auto; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; border: 0; border-radius: 12px; background: #e7f5ec; color: #11713a; font-weight: 700; font-size: 14px; }
+.ask-btn svg { width: 18px; height: 18px; }
+.review { margin: 0 0 12px; background: var(--card); border-radius: var(--r-lg); padding: 16px 16px 14px; box-shadow: var(--shadow); border-left: 4px solid var(--gold); }
+.review blockquote { margin: 0; font-size: 15px; line-height: 1.55; color: var(--ink-2); }
+.review blockquote::before { content: '«'; }
+.review blockquote::after { content: '»'; }
+.review figcaption { margin-top: 10px; font-size: 14px; font-weight: 700; color: var(--muted); }
+.review-more { display: inline-block; padding: 6px 0; color: var(--red); font-weight: 700; text-decoration: none; }
+.tphotos { padding-bottom: 14px; }
+.tphoto { flex: none; width: 240px; height: 300px; padding: 0; border: 0; border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow); cursor: zoom-in; }
+.tphoto img { width: 100%; height: 100%; object-fit: cover; }
+.zoom-img { width: 100%; border-radius: var(--r); }
+
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
