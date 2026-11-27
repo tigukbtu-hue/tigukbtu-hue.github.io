@@ -52,7 +52,7 @@ button { cursor: pointer; }
   margin: 0 auto;
   background: var(--paper);
   min-height: 100vh;
-  padding-bottom: 100px;
+  padding-bottom: 24px;
   box-shadow: 0 0 0 1px var(--line), 0 20px 60px rgba(122, 12, 18, .10);
   overflow-x: clip;
 }
@@ -84,7 +84,7 @@ button { cursor: pointer; }
   font-size: clamp(34px, 10.5vw, 58px);
   line-height: 1;
   color: var(--red);
-  text-shadow: 1px 1px 0 var(--gold), 2px 2px 0 var(--gold), 3px 3px 0 var(--gold-d), 3px 5px 10px rgba(122, 12, 18, .22);
+  text-shadow: 1px 1px 0 var(--gold), 2px 3px 6px rgba(122, 12, 18, .18);
 }
 .brand-sub { font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); margin-top: 4px; }
 .top-actions { display: flex; gap: 6px; justify-content: flex-end; }
@@ -679,7 +679,6 @@ button { cursor: pointer; }
   .ci .thumb { width: 44px; height: 44px; }
 }
 @media (max-width: 340px) {
-  .tab > span { display: none; }
   .perks small { font-size: 10px; }
 }
 
@@ -767,6 +766,128 @@ button { cursor: pointer; }
 @media (max-width: 340px) {
   .lbl-x { display: none; }
 }
+
+/* ---------- Round 3: header, tabs, Kaspi brand ---------- */
+.top-row { padding-bottom: 12px; }
+.tabs { margin: 8px 12px 4px; padding: 4px; gap: 4px; background: var(--soft); border-radius: 16px; }
+.tab { min-height: 40px; border-radius: 12px; border: 0; background: transparent; color: var(--ink-2); gap: 7px; }
+.tab svg { flex: none; width: 19px; height: 19px; opacity: .75; }
+.tab[aria-selected="true"] { box-shadow: inset 0 0 0 1.5px var(--gold), 0 3px 8px rgba(122, 12, 18, .22); }
+.tab[aria-selected="true"] svg { opacity: 1; color: var(--gold-l); }
+.tab[data-tab="events"][aria-selected="false"] { background: transparent; color: var(--ink-2); }
+
+.kaspi-brand { display: inline-flex; align-items: center; gap: 9px; flex: none; }
+.kaspi-ic { width: 40px; height: 40px; border-radius: 50%; background: #fff; display: inline-flex; align-items: center; justify-content: center; overflow: hidden; flex: none; box-shadow: 0 0 0 2px #fff; }
+.kaspi-ic img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.12); display: block; }
+.kaspi-word { font-family: 'Montserrat', var(--font); font-weight: 800; font-size: 24px; letter-spacing: -.03em; line-height: 1; color: var(--kaspi); }
+.kaspi-brand--big .kaspi-ic { width: 44px; height: 44px; }
+.kaspi-brand--big .kaspi-word { font-size: 28px; }
+.paybtn-box { gap: 10px; }
+.paybtn-text { font-size: 15px; font-weight: 800; color: var(--ink-2); }
+.paybtn input:checked + .paybtn-box .kaspi-word,
+.paybtn input:checked + .paybtn-box .paybtn-text { color: #fff; }
+.sblock--kaspi .kaspi-word { color: #fff; }
+.kaspi-title { gap: 10px; font-size: 18px; font-weight: 800; }
+.kaspi-title > span:last-child { opacity: .9; }
+.sblock--kaspi .kaspi-line { margin: 14px 0 4px; font-size: 14px; opacity: .92; }
+.kaspi-send { margin-top: 14px; }
+
+@media (max-width: 340px) {
+  .tab svg { display: none; }
+}
+.fl-opt { font-style: normal; font-weight: 600; color: var(--muted); font-size: 12px; }
+.rescale { display: block; width: 100%; margin: 0 0 10px; min-height: 42px; border: 0; border-radius: 12px; background: var(--pink); color: var(--red-d); font-weight: 800; font-size: 14px; box-shadow: inset 0 0 0 1.5px var(--gold-l); }
+.rc-cov { text-transform: none; letter-spacing: 0; color: var(--muted); font-weight: 700; }
+.kaspi-plus { font-size: 18px; font-weight: 800; opacity: .9; }
+.inline-link { border: 0; background: none; padding: 0; font: inherit; color: var(--red); font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+.last-row--repeat .last-open { background: var(--card); color: var(--ink); box-shadow: inset 0 0 0 2px var(--line); }
+.last-row--repeat .last-text small { color: var(--muted); }
+.last-row--repeat .last-go { background: var(--red); }
+.footer-link { border: 0; background: none; padding: 6px 2px; color: inherit; font: inherit; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+.credits { padding: 4px 12px; }
+.credit { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 12px; align-items: center; padding: 8px 0; }
+.credit + .credit { border-top: 1px solid var(--line); }
+.credit img { width: 56px; height: 56px; border-radius: 12px; object-fit: cover; }
+.credit b { display: block; font-size: 14px; font-weight: 800; }
+.credit small { display: block; font-size: 12px; color: var(--muted); font-weight: 600; overflow-wrap: anywhere; }
+
+/* ---------- Round 4: designer review 2 ---------- */
+body.has-bar .page { padding-bottom: 100px; }
+.media img, .thumb img, .setcard-img img, .combo-img img, .evpromo img { filter: saturate(1.06) contrast(1.04); }
+
+/* menu cards: price + round "+" in one row */
+.card-body { gap: 3px; }
+.card-name { color: var(--ink); }
+.card-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; }
+.card-row .card-price { font-size: 17px; }
+.add-round--red { background: var(--red); color: #fff; box-shadow: 0 3px 8px rgba(122, 12, 18, .25); }
+
+/* event banner in the menu */
+.evpromo { display: flex; align-items: center; gap: 12px; width: calc(100% - 32px); margin: 10px 16px 0; padding: 10px 12px 10px 10px; min-height: 88px; border: 0; border-radius: var(--r-lg); text-align: left; color: #fff;
+  background: radial-gradient(130% 100% at 100% 0%, #d42a33 0%, var(--red) 40%, var(--red-d) 100%); box-shadow: inset 0 0 0 2px var(--gold), var(--shadow); }
+.evpromo img { width: 68px; height: 68px; border-radius: 14px; object-fit: cover; flex: none; border: 2px solid var(--gold-l); }
+.evpromo-text { flex: 1; min-width: 0; }
+.evpromo-text b { display: block; font-family: var(--font-deco); font-weight: 400; font-size: 24px; line-height: 1.05; color: var(--gold-l); }
+.evpromo-text small { display: block; font-size: 13px; font-weight: 700; color: #fde9e4; margin-top: 3px; line-height: 1.3; }
+.evpromo-go { flex: none; width: 32px; height: 32px; border-radius: 50%; background: var(--gold-l); color: var(--red-d); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 900; padding: 0 0 3px 2px; }
+
+/* combo: a real gold border, first / second on two lines */
+.combo { box-shadow: var(--shadow); border: 2px solid var(--gold); }
+.combo-list { line-height: 1.4; }
+.combo-list b { color: var(--ink-2); }
+
+/* banners: one row, close inside the card */
+.last-row { position: relative; }
+.last-open { padding-right: 46px; min-height: 56px; }
+.last-x { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border-radius: 50%; background: rgba(60, 30, 10, .07); font-size: 20px; }
+.last-ic { display: flex; align-items: center; color: var(--red); }
+.last-ic svg { width: 24px; height: 24px; }
+.kaspi-ic--sm { width: 30px; height: 30px; }
+.last-thumbs { display: flex; }
+.last-thumbs > span { width: 30px; height: 30px; border-radius: 50%; overflow: hidden; border: 2px solid #fff; background: var(--soft); flex: none; }
+.last-thumbs > span + span { margin-left: -10px; }
+.last-thumbs img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.last-thumbs .emo span { font-size: 14px; }
+
+/* checkout */
+.chips--sm { gap: 6px; }
+.chips--sm span { min-height: 36px; padding: 4px 14px; border-radius: 999px; font-size: 14px; border-width: 1.5px; }
+.chips--sm input:checked + span { background: var(--ink); border-color: var(--ink); }
+.note-ic { display: flex; color: var(--red); }
+.note-ic svg { width: 18px; height: 18px; }
+.opt-ic { color: var(--red); }
+.opt-ic svg { width: 22px; height: 22px; }
+.opt input:checked + span .opt-ic { background: var(--pink); }
+.build-ic { display: flex; color: var(--red); }
+.cartbar-emoji { display: flex; }
+
+/* Kaspi: one red, softer glow */
+.paybtn input:checked + .paybtn-box, .paybtn--only .paybtn-box { background: var(--kaspi); border-color: var(--kaspi); color: #fff; box-shadow: 0 4px 10px rgba(217, 56, 42, .18); }
+.paybtn--only .kaspi-word, .paybtn--only .paybtn-text { color: #fff; }
+.paybtn-text small { color: inherit; opacity: .9; font-size: 13px; font-weight: 700; margin-top: 2px; }
+.paybtn input:checked + .paybtn-box .paybtn-text small, .paybtn--only .paybtn-text small { color: #ffe3df; opacity: 1; }
+.sblock--kaspi { grid-template-columns: minmax(0, 1fr); background: var(--kaspi); box-shadow: 0 6px 16px rgba(217, 56, 42, .22); }
+.kaspi-step { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; opacity: .88; margin-bottom: 8px; }
+.kaspi-card { background: #fff; color: var(--ink); border-radius: 14px; margin-top: 12px; }
+.kc-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+.kc-row + .kc-row { border-top: 1px solid var(--line); }
+.kc-text { flex: 1; min-width: 0; }
+.kc-label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); }
+.kc-val { display: block; font-size: 20px; font-weight: 900; white-space: nowrap; }
+.kc-val small { font-size: 14px; font-weight: 800; color: var(--muted); }
+.kc-copy { flex: none; width: 40px; height: 40px; border-radius: 12px; border: 0; background: var(--soft); color: var(--kaspi-d); display: flex; align-items: center; justify-content: center; }
+.kc-copy svg { width: 20px; height: 20px; }
+.kaspi-send { white-space: nowrap; }
+.success-sub { text-align: center; color: var(--ink-2); font-weight: 800; margin: 2px 0 14px; }
+
+/* ready tables: badge above the number, recalculated card */
+.tset-head { padding-top: 12px; }
+.tset-badge { position: static; display: block; width: max-content; margin-bottom: 8px; }
+.tset-from { display: block; margin-top: 4px; font-size: 12px; font-weight: 700; color: #fde9e4; }
+
+/* table check and details */
+.rc-total > span:first-child { font-size: 17px; white-space: nowrap; }
+.note--warn { background: #fff3c4; margin-top: 4px; }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }

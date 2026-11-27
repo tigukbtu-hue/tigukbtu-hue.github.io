@@ -16,9 +16,10 @@ window.CONFIG = {
   kaspiName: '',
   // Картинка Kaspi QR (положите файл в папку img и впишите путь, например 'img/kaspi-qr.png')
   kaspiQr: '',
-  // Официальный логотип Kaspi, если есть файл (например 'img/kaspi-logo.png').
-  // Пусто — на кнопке оплаты будет надпись «Kaspi» в фирменном красном цвете.
-  kaspiLogo: '',
+  // Значок Kaspi на кнопке оплаты (красный круг). Сейчас берётся с Wikimedia Commons.
+  // Можно положить свой файл в img и вписать путь, например 'img/kaspi-logo.png'.
+  // Пусто — останется только надпись «Kaspi».
+  kaspiLogo: 'https://upload.wikimedia.org/wikipedia/commons/8/87/Kaspi.kz_logo.svg',
 
   address: 'Тараз, Гранд Базар',
   hours: '',            // например 'Ежедневно 08:00–20:00'
