@@ -888,6 +888,7 @@ body.has-bar .page { padding-bottom: 100px; }
 /* table check and details */
 .rc-total > span:first-child { font-size: 17px; white-space: nowrap; }
 .note--warn { background: #fff3c4; margin-top: 4px; }
+.seg span { font-size: 14px; padding: 4px; letter-spacing: -.01em; }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
