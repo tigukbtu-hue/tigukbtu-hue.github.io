@@ -13,6 +13,14 @@ window.MENU = [
   {
     id: 'desserts', title: 'Торты и десерты', nav: 'Торты',
     items: [
+      // цена 5000 — временная, поменяйте на настоящую
+      { id: 'berry-cake', name: 'Торт с ягодами', price: 5000, img: 'img/g-berrycake.webp', emoji: '🎂' },
+      { id: 'fruit-cake', name: 'Торт с фруктами', price: 5000, img: 'img/g-custom-cake.webp', emoji: '🎂' },
+      { id: 'maracuja', name: 'Маракуйя чизкейк', price: 5000, img: 'img/g-maracuja.webp', emoji: '🍰' },
+      { id: 'snickers-roll', name: 'Рулет «Сникерс»', price: 5000, img: 'img/g-snickers.webp', emoji: '🍫' },
+      { id: 'meringue-roll', name: 'Меренговый рулет', price: 5000, img: 'img/g-meringue.webp', emoji: '🍰' },
+      { id: 'tartlets-fruit', name: 'Тарталетки с фруктами', price: 5000, img: 'img/g-tart-fruit.webp', emoji: '🧁' },
+      { id: 'tartlets-berry', name: 'Тарталетки с ягодами', price: 5000, img: 'img/g-tart-berries.webp', emoji: '🧁' },
       { id: 'tort-med-slice', name: 'Медовый торт', note: 'кусок', price: 900, img: 'img/medovik.webp' },
       { id: 'whoopie-slice', name: 'Вупи пай', note: 'кусок', price: 900, img: PH('whoopie-slice') },
       { id: 'banoffee', name: 'Баноффи пай', note: 'кусок', price: 550, img: 'img/banoffee.webp' },
@@ -33,6 +41,8 @@ window.MENU = [
       { id: 'tray-tvorog', name: 'Пирог творожный', note: 'набор', price: 4500, img: 'img/cheesecake.webp', emoji: '🥧' },
       { id: 'tray-brownie', name: 'Брауни', note: 'набор', price: 4500, img: PH('brownie-tray'), emoji: '🍫' },
       { id: 'tray-mak', name: 'Пирог маковый', note: 'набор', price: 4500, img: 'img/poppy.webp', emoji: '🥧' },
+      { id: 'tea-pies', name: 'Пироги к чаю', note: 'набор', price: 5000, img: 'img/g-tea-pies.webp', emoji: '🥧' },
+      { id: 'set-zhanuya', name: 'Сет «Жанұя»', note: '7 лепёшек, 3 қаттама, 14 самсы, 2 пирога, 12 блинчиков, 15 сочников, 20 орешков, 1 кг бауырсаков', price: 5000, img: 'img/g-boxes.webp', emoji: '🧺' },
     ],
   },
   {
@@ -43,6 +53,7 @@ window.MENU = [
       { id: 'samsa-cheese', name: 'Самса с сыром', price: 350, img: 'img/samsa.webp' },
       { id: 'cheburek', name: 'Чебурек', price: 200, img: PH('cheburek'), emoji: '🥟' },
       { id: 'bauyrsak', name: 'Бауырсаки', note: '1 кг', price: 2300, img: 'img/bauyrsak.webp', preorder: true },
+      { id: 'lepeshki', name: 'Лепёшки и қаттама', note: 'набор', price: 5000, img: 'img/g-lepeshki.webp', emoji: '🫓' },
     ],
   },
   {
@@ -223,6 +234,9 @@ window.EVENT_MENU = [
       { id: 'samsa-cheese', unit: 'шт.' },
       { id: 'cheburek', unit: 'шт.' },
       { id: 'bauyrsak', unit: 'кг', note: '' },
+      { id: 'lepeshki', name: 'Лепёшки и қаттама — набор', unit: 'шт.', note: '' },
+      { id: 'set-zhanuya', unit: 'шт.', note: '' },
+      { id: 'tea-pies', name: 'Пироги к чаю — набор', unit: 'шт.', note: '' },
       { id: 'tray-cheburek', name: 'Чебуреки — набор', unit: 'шт.', note: '' },
       { id: 'tray-bliny', name: 'Блины — набор', unit: 'шт.', note: '' },
     ],
@@ -240,6 +254,13 @@ window.EVENT_MENU = [
       { id: 'tray-tvorog', name: 'Пирог творожный — набор', unit: 'шт.', note: '' },
       { id: 'tray-brownie', name: 'Брауни — набор', unit: 'шт.', note: '' },
       { id: 'tray-mak', name: 'Пирог маковый — набор', unit: 'шт.', note: '' },
+      { id: 'berry-cake', unit: 'шт.' },
+      { id: 'fruit-cake', unit: 'шт.' },
+      { id: 'maracuja', unit: 'шт.' },
+      { id: 'snickers-roll', unit: 'шт.' },
+      { id: 'meringue-roll', unit: 'шт.' },
+      { id: 'tartlets-fruit', unit: 'шт.' },
+      { id: 'tartlets-berry', unit: 'шт.' },
     ],
   },
   {
@@ -282,16 +303,7 @@ window.EVENT_SERVICES = [
 //  Когда будет цена — перенесите блюдо в меню выше и впишите price:.
 // ============================================================
 window.ON_ORDER = [
-  { name: 'Маракуйя чизкейк', img: 'img/g-maracuja.webp' },
-  { name: 'Рулет «Сникерс»', img: 'img/g-snickers.webp' },
-  { name: 'Торт с ягодами', img: 'img/g-berrycake.webp' },
-  { name: 'Торт с фруктами', img: 'img/g-custom-cake.webp' },
-  { name: 'Меренговый рулет', img: 'img/g-meringue.webp' },
-  { name: 'Тарталетки с фруктами', img: 'img/g-tart-fruit.webp' },
-  { name: 'Тарталетки с ягодами', img: 'img/g-tart-berries.webp' },
-  { name: 'Пироги к чаю', img: 'img/g-tea-pies.webp' },
-  { name: 'Лепёшки и қаттама', img: 'img/g-lepeshki.webp' },
-  { name: 'Сет «Жанұя»', img: 'img/g-boxes.webp', note: '7 лепёшек, 3 қаттама, 14 самсы, 2 пирога, 12 блинчиков, 15 сочников, 20 орешков, 1 кг бауырсаков' },
+  // { name: 'Название', img: 'img/фото.webp', note: 'необязательно' },
 ];
 
 // Фото накрытых столов — на вкладке «Накрыть стол» (нажатием открываются крупно)
